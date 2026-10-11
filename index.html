@@ -18,28 +18,79 @@
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: #090510;
+            overflow-x: hidden;
         }
 
-        .bg-mesh {
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(147, 51, 234, 0.18) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(126, 34, 206, 0.15) 0px, transparent 50%),
-                radial-gradient(at 50% 50%, rgba(88, 28, 135, 0.1) 0px, transparent 50%);
+        /* FONDO MESH ANIMADO CON MOVIMIENTO DE LUZ */
+        .bg-mesh-animated {
+            position: relative;
+            background: #090510;
+        }
+
+        .bg-mesh-animated::before,
+        .bg-mesh-animated::after {
+            content: '';
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(90px);
+            opacity: 0.25;
+            pointer-events: none;
+            animation: pulseGlow 10s ease-in-out infinite alternate;
+        }
+
+        .bg-mesh-animated::before {
+            top: -10%;
+            left: -10%;
+            background: radial-gradient(circle, rgba(147, 51, 234, 0.8) 0%, transparent 70%);
+        }
+
+        .bg-mesh-animated::after {
+            bottom: -10%;
+            right: -10%;
+            background: radial-gradient(circle, rgba(126, 34, 206, 0.8) 0%, transparent 70%);
+            animation-delay: -5s;
+        }
+
+        @keyframes pulseGlow {
+            0% {
+                transform: scale(0.9) translate(0, 0);
+                opacity: 0.2;
+            }
+            50% {
+                transform: scale(1.15) translate(30px, -20px);
+                opacity: 0.35;
+            }
+            100% {
+                transform: scale(1) translate(-20px, 30px);
+                opacity: 0.22;
+            }
+        }
+
+        /* FLOTACIÓN SUAVE DE LA TARJETA */
+        .card-float {
+            animation: floatCard 6s ease-in-out infinite;
+        }
+
+        @keyframes floatCard {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
         }
 
         .card-blur {
             background: rgba(18, 10, 31, 0.82);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(168, 85, 247, 0.22);
+            border: 1px solid rgba(168, 85, 247, 0.25);
         }
 
         .glow-purple {
-            box-shadow: 0 0 60px -10px rgba(147, 51, 234, 0.35);
+            box-shadow: 0 0 65px -10px rgba(147, 51, 234, 0.4);
         }
 
         .logo-glow {
-            filter: drop-shadow(0 0 15px rgba(168, 85, 247, 0.5));
+            filter: drop-shadow(0 0 15px rgba(168, 85, 247, 0.6));
         }
 
         .text-gradient {
@@ -49,25 +100,27 @@
         }
     </style>
 </head>
-<body class="min-h-screen bg-mesh flex items-center justify-center p-4 antialiased selection:bg-purple-500 selection:text-white">
+<body class="min-h-screen bg-mesh-animated flex items-center justify-center p-4 antialiased selection:bg-purple-500 selection:text-white relative overflow-hidden">
 
-    <div class="w-full max-w-lg">
+    <!-- Tarjeta Principal con movimiento -->
+    <div class="w-full max-w-lg card-float relative z-10">
         <div class="card-blur glow-purple rounded-3xl p-7 sm:p-9 text-center relative overflow-hidden transition-all duration-500">
             
-            <div class="absolute -top-24 -left-24 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
-            <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-purple-800/20 rounded-full blur-3xl pointer-events-none"></div>
+            <!-- Resplandores en esquinas -->
+            <div class="absolute -top-24 -left-24 w-48 h-48 bg-purple-600/30 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-purple-800/30 rounded-full blur-3xl pointer-events-none"></div>
 
             <div class="relative z-10 flex flex-col items-center">
                 
                 <!-- Badge Estado del Sistema -->
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-xs font-semibold mb-6">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-xs font-semibold mb-6 shadow-sm">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                     <span>Sistema de Seguridad Activo</span>
                 </div>
 
                 <!-- Logo del Servidor -->
                 <div class="mb-5 relative group">
-                    <div class="absolute -inset-1 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl blur opacity-50 group-hover:opacity-80 transition duration-500"></div>
+                    <div class="absolute -inset-1 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl blur opacity-60 group-hover:opacity-90 transition duration-500"></div>
                     <div class="relative w-24 h-24 rounded-2xl overflow-hidden border border-purple-500/40 bg-purple-950/60 flex items-center justify-center shadow-2xl">
                         <img src="/kyvenico.png" alt="Keyven Shop Logo" class="w-full h-full object-cover logo-glow" onerror="this.src='https://cdn-icons-png.flaticon.com/512/5968/5968756.png'">
                     </div>
@@ -82,7 +135,7 @@
                         Para mantener la seguridad en <span class="text-purple-300 font-semibold">Keyven Shop</span>, vincula tu cuenta de Discord haciendo clic en el botón inferior.
                     </p>
 
-                    <button onclick="startVerification()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold border border-indigo-400/30 rounded-xl p-3.5 flex items-center justify-center gap-3 text-sm shadow-lg hover:shadow-indigo-500/25 transition-all duration-300 cursor-pointer active:scale-95 mb-4">
+                    <button onclick="startVerification()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold border border-indigo-400/30 rounded-xl p-3.5 flex items-center justify-center gap-3 text-sm shadow-lg hover:shadow-indigo-500/30 transition-all duration-300 cursor-pointer active:scale-95 mb-4">
                         <i class="fa-brands fa-discord text-lg"></i>
                         <span>Completar Verificación</span>
                     </button>
@@ -99,7 +152,6 @@
                 <!-- PASO 3: ÉXITO -->
                 <div id="step-success" class="w-full flex-col items-center hidden">
                     
-                    <!-- Ícono de Éxito Corregido (SVG Directo sin dependencias) -->
                     <div class="w-14 h-14 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-center mb-4 text-emerald-400 shadow-inner">
                         <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -114,7 +166,7 @@
                         Tu identidad ha sido verificada correctamente. Tu rol ya está asignado en nuestro servidor de Discord.
                     </p>
 
-                    <!-- Lista de Beneficios / Resumen -->
+                    <!-- Lista de Beneficios -->
                     <div class="w-full bg-purple-950/40 border border-purple-800/30 rounded-2xl p-4 text-left mb-6 space-y-2.5">
                         <p class="text-xs font-bold text-purple-300 uppercase tracking-wider mb-1">
                             Beneficios Activos:
@@ -134,7 +186,7 @@
                     </div>
 
                     <!-- Botón de Cerrar -->
-                    <button onclick="closeTab()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold border border-purple-400/30 rounded-xl p-3.5 flex items-center justify-center gap-2 text-sm shadow-lg hover:shadow-purple-500/25 transition-all duration-300 cursor-pointer active:scale-95">
+                    <button onclick="closeTab()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold border border-purple-400/30 rounded-xl p-3.5 flex items-center justify-center gap-2 text-sm shadow-lg hover:shadow-purple-500/30 transition-all duration-300 cursor-pointer active:scale-95">
                         <i class="fa-solid fa-arrow-right-from-bracket text-base"></i>
                         <span>Cerrar pestaña y volver a Discord</span>
                     </button>
