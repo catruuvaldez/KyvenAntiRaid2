@@ -21,6 +21,9 @@ db.exec(`
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Servir archivos estáticos si los necesitas
+app.use(express.static(__dirname));
+
 app.get('/auth/callback', async (req, res) => {
     const code = req.query.code;
     if (!code) return res.send('❌ No se proporcionó ningún código de autorización.');
@@ -62,7 +65,8 @@ app.get('/auth/callback', async (req, res) => {
                 });
             }
 
-            res.send('<h1>¡Verificación exitosa!</h1><p>Ya puedes cerrar esta pestaña y volver a Discord. ¡Tu rol ha sido entregado!</p>');
+            // Enviar la interfaz visual en lugar del texto plano
+            res.sendFile(path.join(__dirname, 'index.html'));
         } else {
             res.send('❌ Error al obtener los tokens de Discord.');
         }
@@ -73,7 +77,7 @@ app.get('/auth/callback', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🌐 Servidor web corriendo en http://localhost:${PORT}`);
+    console.log(`🌐 Servidor web corriendo en el puerto ${PORT}`);
 });
 
 // 3. Configurar Bot de Discord
@@ -81,28 +85,34 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 client.commands = new Collection();
 
 const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-const slashCommands = [];
+if (fs.existsSync(commandsPath)) {
+    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+    const slashCommands = [];
 
-for (const file of commandFiles) {
-    const filePath = path.join(commandsPath, file);
-    const command = require(filePath);
-    if ('data' in command && 'execute' in command) {
-        client.commands.set(command.data.name, command);
-        slashCommands.push(command.data.toJSON());
+    for (const file of commandFiles) {
+        const filePath = path.join(commandsPath, file);
+        const command = require(filePath);
+        if ('data' in command && 'execute' in command) {
+            client.commands.set(command.data.name, command);
+            slashCommands.push(command.data.toJSON());
+        }
     }
+
+    client.once('ready', async () => {
+        console.log(`🤖 Bot encendido como: ${client.user.tag}`);
+        const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+        try {
+            await rest.put(Routes.applicationCommands(client.user.id), { body: slashCommands });
+            console.log('✅ Comandos Slash registrados correctamente.');
+        } catch (error) {
+            console.error(error);
+        }
+    });
+} else {
+    client.once('ready', () => {
+        console.log(`🤖 Bot encendido como: ${client.user.tag}`);
+    });
 }
-
-client.once('ready', async () => {
-    console.log(`🤖 Bot encendido como: ${client.user.tag}`);
-    const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
-    try {
-        await rest.put(Routes.applicationCommands(client.user.id), { body: slashCommands });
-        console.log('✅ Comandos Slash registrados correctamente[cite: 1].');
-    } catch (error) {
-        console.error(error);
-    }
-});
 
 client.on('interactionCreate', async interaction => {
     if (!interaction.isChatInputCommand()) return;
@@ -111,7 +121,6 @@ client.on('interactionCreate', async interaction => {
     if (!command) return;
 
     try {
-        // Pasamos interaction y la base de datos (db) por si el comando la necesita (ej: rescatar)
         await command.execute(interaction, db);
     } catch (error) {
         console.error(error);

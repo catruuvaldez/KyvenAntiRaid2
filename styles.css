@@ -1,0 +1,32 @@
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: #090510;
+}
+
+.bg-mesh {
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(147, 51, 234, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(126, 34, 206, 0.12) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(88, 28, 135, 0.08) 0px, transparent 50%);
+}
+
+.card-blur {
+    background: rgba(18, 10, 31, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(168, 85, 247, 0.18);
+}
+
+.glow-purple {
+    box-shadow: 0 0 50px -10px rgba(147, 51, 234, 0.3);
+}
+
+.logo-glow {
+    filter: drop-shadow(0 0 15px rgba(168, 85, 247, 0.4));
+}
+
+.text-gradient {
+    background: linear-gradient(135deg, #e9d5ff 0%, #c084fc 50%, #a855f7 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}

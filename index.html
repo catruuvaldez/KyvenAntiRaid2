@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keyven Shop - Verificación</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Scripts y FontAwesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #090510;
+        }
+
+        .bg-mesh {
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(147, 51, 234, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(126, 34, 206, 0.12) 0px, transparent 50%),
+                radial-gradient(at 50% 50%, rgba(88, 28, 135, 0.08) 0px, transparent 50%);
+        }
+
+        .card-blur {
+            background: rgba(18, 10, 31, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(168, 85, 247, 0.18);
+        }
+
+        .glow-purple {
+            box-shadow: 0 0 50px -10px rgba(147, 51, 234, 0.3);
+        }
+
+        .logo-glow {
+            filter: drop-shadow(0 0 15px rgba(168, 85, 247, 0.4));
+        }
+
+        .text-gradient {
+            background: linear-gradient(135deg, #e9d5ff 0%, #c084fc 50%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-mesh flex items-center justify-center p-4 antialiased selection:bg-purple-500 selection:text-white">
+
+    <div class="w-full max-w-md">
+        <div class="card-blur glow-purple rounded-3xl p-8 sm:p-10 text-center relative overflow-hidden transition-all duration-500">
+            
+            <div class="absolute -top-24 -left-24 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-purple-800/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="relative z-10 flex flex-col items-center">
+                
+                <div class="mb-6 relative group">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl blur opacity-40 group-hover:opacity-75 transition duration-500"></div>
+                    <div class="relative w-24 h-24 rounded-2xl overflow-hidden border border-purple-500/30 bg-purple-950/50 flex items-center justify-center shadow-2xl">
+                        <img src="https://i.imgur.com/vH98gW2.png" alt="KV Store Logo" class="w-full h-full object-cover logo-glow">
+                    </div>
+                </div>
+
+                <div id="verify-state" class="w-full flex flex-col items-center">
+                    <div class="w-16 h-16 bg-purple-500/10 border border-purple-500/30 rounded-2xl flex items-center justify-center mb-4 text-purple-400 text-2xl shadow-inner">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+
+                    <h1 class="text-2xl sm:text-3xl font-extrabold text-gradient tracking-tight mb-2">
+                        ¡Verificación Exitosa!
+                    </h1>
+
+                    <p class="text-gray-400 text-sm leading-relaxed mb-6 max-w-xs">
+                        Tu cuenta ha sido verificada correctamente. Ya puedes cerrar esta pestaña y volver a Discord para disfrutar de <span class="text-purple-300 font-semibold">Keyven Shop</span>.
+                    </p>
+
+                    <div class="w-full bg-purple-950/30 border border-purple-800/30 rounded-xl p-3 flex items-center justify-center gap-2 text-xs text-purple-300 font-medium">
+                        <i class="fa-brands fa-discord text-base"></i>
+                        <span>Rol entregado en el servidor</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="mt-6 text-center">
+            <p class="text-xs text-gray-500 font-medium tracking-wide">
+                Keyven Shop &copy; Todos los derechos reservados
+            </p>
+        </div>
+    </div>
+
+</body>
+</html>
