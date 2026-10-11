@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Scripts y FontAwesome -->
+    <!-- Tailwind CSS y FontAwesome -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
@@ -59,16 +59,41 @@
 
             <div class="relative z-10 flex flex-col items-center">
                 
+                <!-- Logo del Servidor -->
                 <div class="mb-6 relative group">
                     <div class="absolute -inset-1 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl blur opacity-40 group-hover:opacity-75 transition duration-500"></div>
                     <div class="relative w-24 h-24 rounded-2xl overflow-hidden border border-purple-500/30 bg-purple-950/50 flex items-center justify-center shadow-2xl">
-                        <img src="kyvenico.png" alt="KV Store Logo" class="w-full h-full object-cover logo-glow">
+                        <img src="kyvenico.png" alt="Keyven Shop Logo" class="w-full h-full object-cover logo-glow" onerror="this.src='https://cdn-icons-png.flaticon.com/512/5968/5968756.png'">
                     </div>
                 </div>
 
-                <div id="verify-state" class="w-full flex flex-col items-center">
+                <!-- PASO 1: BOTÓN INICIAL DE VERIFICACIÓN -->
+                <div id="step-start" class="w-full flex flex-col items-center">
+                    <h1 class="text-2xl sm:text-3xl font-extrabold text-gradient tracking-tight mb-2">
+                        Verificación requerida
+                    </h1>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-6 max-w-xs">
+                        Haz clic abajo para vincular tu cuenta y recibir tu rol en el servidor de <span class="text-purple-300 font-semibold">Keyven Shop</span>.
+                    </p>
+
+                    <button onclick="startVerification()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold border border-indigo-400/30 rounded-xl p-3.5 flex items-center justify-center gap-3 text-sm shadow-lg hover:shadow-indigo-500/25 transition-all duration-300 cursor-pointer active:scale-95">
+                        <i class="fa-brands fa-discord text-lg"></i>
+                        <span>Completar Verificación</span>
+                    </button>
+                </div>
+
+                <!-- PASO 2: ANIMACIÓN DE CARGA -->
+                <div id="step-loading" class="w-full flex-col items-center py-4 hidden">
+                    <div class="w-12 h-12 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin mb-4"></div>
+                    <p class="text-purple-300 text-sm font-medium animate-pulse">
+                        Asignando rol en Discord...
+                    </p>
+                </div>
+
+                <!-- PASO 3: ÉXITO Y BOTÓN DE CERRAR -->
+                <div id="step-success" class="w-full flex-col items-center hidden">
                     <div class="w-16 h-16 bg-purple-500/10 border border-purple-500/30 rounded-2xl flex items-center justify-center mb-4 text-purple-400 text-2xl shadow-inner">
-                        <i class="fa-solid fa-circle-check"></i>
+                        <i class="fa-solid fa-circle-check text-3xl"></i>
                     </div>
 
                     <h1 class="text-2xl sm:text-3xl font-extrabold text-gradient tracking-tight mb-2">
@@ -76,7 +101,7 @@
                     </h1>
 
                     <p class="text-gray-400 text-sm leading-relaxed mb-6 max-w-xs">
-                        Tu cuenta ha sido verificada correctamente. Ya puedes volver a Discord para disfrutar de <span class="text-purple-300 font-semibold">Keyven Shop</span>.
+                        Tu cuenta ha sido verificada correctamente. Ya puedes volver a Discord.
                     </p>
 
                     <button onclick="closeTab()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold border border-purple-400/30 rounded-xl p-3 flex items-center justify-center gap-2 text-sm shadow-lg hover:shadow-purple-500/25 transition-all duration-300 cursor-pointer active:scale-95">
@@ -85,7 +110,7 @@
                     </button>
                     
                     <p id="close-msg" class="text-xs text-gray-500 mt-2 hidden">
-                        Si la pestaña no se cierra automáticamente, puedes cerrarla manualmente.
+                        Si la pestaña no se cierra sola, puedes cerrarla manualmente.
                     </p>
                 </div>
 
@@ -100,9 +125,24 @@
     </div>
 
     <script>
+        function startVerification() {
+            // Ocultar paso 1 y mostrar animación de carga (paso 2)
+            document.getElementById('step-start').classList.add('hidden');
+            document.getElementById('step-loading').classList.remove('hidden');
+            document.getElementById('step-loading').classList.add('flex');
+
+            // Simular el proceso durante 1.5 segundos
+            setTimeout(() => {
+                document.getElementById('step-loading').classList.add('hidden');
+                document.getElementById('step-loading').classList.remove('flex');
+                
+                document.getElementById('step-success').classList.remove('hidden');
+                document.getElementById('step-success').classList.add('flex');
+            }, 1500);
+        }
+
         function closeTab() {
             window.close();
-            // Por si el navegador bloquee el auto-cierre
             document.getElementById('close-msg').classList.remove('hidden');
         }
     </script>
