@@ -21,7 +21,7 @@ db.exec(`
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Servir archivos estáticos si los necesitas
+// Servir archivos estáticos (imágenes, CSS, etc.)
 app.use(express.static(__dirname));
 
 app.get('/auth/callback', async (req, res) => {
@@ -58,14 +58,26 @@ app.get('/auth/callback', async (req, res) => {
             const now = new Date().toISOString();
             stmt.run(userData.id, data.access_token, data.refresh_token, now, data.access_token, data.refresh_token, now);
 
-            if (process.env.GUILD_ID && process.env.ROLE_ID) {
-                await fetch(`https://discord.com/api/guilds/${process.env.GUILD_ID}/members/${userData.id}/roles/${process.env.ROLE_ID}`, {
-                    method: 'PUT',
-                    headers: { Authorization: `Bot ${process.env.TOKEN}` }
-                });
+            // Asignación de ambos roles en el servidor
+            if (process.env.GUILD_ID) {
+                const rolesToAssign = [
+                    process.env.ROLE_ID, // Rol original de verificado (1547729113391960064)
+                    process.env.ROLE_USUARIO_ID || '1561162470557483098' // Nuevo rol
+                ].filter(Boolean);
+
+                for (const roleId of rolesToAssign) {
+                    try {
+                        await fetch(`https://discord.com/api/guilds/${process.env.GUILD_ID}/members/${userData.id}/roles/${roleId}`, {
+                            method: 'PUT',
+                            headers: { Authorization: `Bot ${process.env.TOKEN}` }
+                        });
+                    } catch (roleErr) {
+                        console.error(`Error al asignar el rol ${roleId}:`, roleErr);
+                    }
+                }
             }
 
-            // Enviar la interfaz visual en lugar del texto plano
+            // Enviar la interfaz visual
             res.sendFile(path.join(__dirname, 'index.html'));
         } else {
             res.send('❌ Error al obtener los tokens de Discord.');
