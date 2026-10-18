@@ -20,7 +20,8 @@ module.exports = {
         // IDs de canales estrictamente privados (ocultos)
         const canalesPrivadosEstrictos = [
             '1547736261521842186', // notificaciones
-            '1547748846468333699'  // tickets-closed
+            '1547748846468333699', // tickets-closed
+            '1548577541944647680'  // notis allys
         ];
 
         // Canal de verificación público (solo lectura)
