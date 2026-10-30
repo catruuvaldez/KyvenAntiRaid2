@@ -6,7 +6,7 @@ module.exports = {
         .setDescription('Bloquea masivamente el servidor protegiendo canales y manteniendo visibles los paneles')
         .addRoleOption(option =>
             option.setName('rol_usuarios')
-                .setDescription('El rol de Usuarios (o Verificados) del servidor')
+                .setDescription('El rol de Usuarios del servidor')
                 .setRequired(true))
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
     
@@ -17,34 +17,27 @@ module.exports = {
         const rolUsuarios = interaction.options.getRole('rol_usuarios');
         const everyoneId = guild.id;
         
-        // --- NUEVOS ROLES Y CATEGORÍAS ---
-        const rolFriendsId = '1565479493534093523';
-        const rolVerificadoId = '1561162470557483098'; // Registrado en el código como referencia
-        const categoriaFriendsId = '1565479867095589006';
-        
-        // ID DEL ENCARGADO DE VENTAS:
+        // IDs configuradas
         const rolVentasId = '1548106038329212968';
+        const rolVerificadoId = '1561162470557483098';
+        const rolFriendsId = '1565479493534093523';
         
-        // ID de la categoría súper privada
+        // IDs de categorías y canales especiales
         const categoriaPrivadaEstricta = '1547736192584515756';
+        const categoriaFriendsId = '1565479867095589006';
+        const categoriaBackupId = 'PON_LA_ID_DE_LA_CATEGORIA_BACKUP_AQUI'; // Reemplazar con la ID real
+        const canalVerificarId = '1547772473020387388';
+        const categoriaChatId = '1547412298832814244';
 
-        // IDs de canales estrictamente privados (ocultos)
         const canalesPrivadosEstrictos = [
             '1547736261521842186', // notificaciones
             '1547748846468333699', // tickets-closed
             '1548577541944647680'  // notis allys
         ];
 
-        // Canal de verificación público (solo lectura)
-        const canalVerificarId = '1547772473020387388';
-
-        // Canales permitidos para escribir (Feedback)
         const canalesPermitidosEscritura = [
             '1547709304407203870'  // Feedback
         ];
-
-        // ID de la categoría Chat principal
-        const categoriaChatId = '1547412298832814244';
 
         try {
             const channels = await guild.channels.fetch();
@@ -54,43 +47,49 @@ module.exports = {
                 if (!channel) continue;
 
                 try {
-                    // 0. CATEGORÍA SÚPER PRIVADA
-                    if (channel.id === categoriaPrivadaEstricta || channel.parentId === categoriaPrivadaEstricta) {
+                    // 0. CATEGORÍAS SÚPER PRIVADAS Y BACKUP (Nadie las ve excepto Admin)
+                    if (channel.id === categoriaPrivadaEstricta || channel.parentId === categoriaPrivadaEstricta || 
+                        channel.id === categoriaBackupId || channel.parentId === categoriaBackupId) {
                         await channel.permissionOverwrites.edit(everyoneId, { ViewChannel: false });
                         await channel.permissionOverwrites.edit(rolUsuarios.id, { ViewChannel: false });
+                        await channel.permissionOverwrites.edit(rolVerificadoId, { ViewChannel: false });
                         await channel.permissionOverwrites.edit(rolFriendsId, { ViewChannel: false });
                         await channel.permissionOverwrites.edit(rolVentasId, { ViewChannel: false });
                         continue;
                     }
 
-                    // 1. Canales privados estrictos
+                    // 1. CATEGORÍA FRIENDS (Exclusiva, bloqueada para usuarios normales y verificados)
+                    if (channel.id === categoriaFriendsId || channel.parentId === categoriaFriendsId) {
+                        await channel.permissionOverwrites.edit(everyoneId, { ViewChannel: false });
+                        await channel.permissionOverwrites.edit(rolUsuarios.id, { ViewChannel: false });
+                        await channel.permissionOverwrites.edit(rolVerificadoId, { ViewChannel: false });
+                        await channel.permissionOverwrites.edit(rolFriendsId, { 
+                            ViewChannel: true, ReadMessageHistory: true, SendMessages: true, AddReactions: true, AttachFiles: true, EmbedLinks: true 
+                        });
+                        continue;
+                    }
+
+                    // 2. Canales privados estrictos sueltos
                     if (canalesPrivadosEstrictos.includes(channel.id)) {
                         await channel.permissionOverwrites.edit(everyoneId, { ViewChannel: false });
                         await channel.permissionOverwrites.edit(rolUsuarios.id, { ViewChannel: false });
+                        await channel.permissionOverwrites.edit(rolVerificadoId, { ViewChannel: false });
                         await channel.permissionOverwrites.edit(rolFriendsId, { ViewChannel: false });
                         await channel.permissionOverwrites.edit(rolVentasId, { ViewChannel: false });
                         continue;
                     }
 
-                    // 2. Canal de Verificación
+                    // 3. Canal de Verificación (Oculto para los que ya son Usuarios o Verificados)
                     if (channel.id === canalVerificarId) {
                         await channel.permissionOverwrites.edit(everyoneId, {
                             ViewChannel: true, ReadMessageHistory: true, SendMessages: false, AddReactions: true,
                         });
-                        continue;
-                    }
-
-                    // --- NUEVO: CATEGORÍA FRIENDS (Solo para el rol Friends) ---
-                    if (channel.id === categoriaFriendsId || channel.parentId === categoriaFriendsId) {
-                        await channel.permissionOverwrites.edit(everyoneId, { ViewChannel: false });
                         await channel.permissionOverwrites.edit(rolUsuarios.id, { ViewChannel: false });
-                        await channel.permissionOverwrites.edit(rolFriendsId, { 
-                            ViewChannel: true, ReadMessageHistory: true, SendMessages: true, AttachFiles: true, EmbedLinks: true 
-                        });
+                        await channel.permissionOverwrites.edit(rolVerificadoId, { ViewChannel: false });
                         continue;
                     }
 
-                    // 3. DETECCIÓN INTELIGENTE DE TICKETS
+                    // 4. DETECCIÓN INTELIGENTE DE TICKETS (Ocultos para Usuarios/Verificados)
                     let esTicketPrivado = false;
                     let esCategoriaTicket = false;
 
@@ -113,12 +112,17 @@ module.exports = {
                     }
 
                     if (esCategoriaTicket) {
+                        await channel.permissionOverwrites.edit(everyoneId, { ViewChannel: false });
+                        await channel.permissionOverwrites.edit(rolUsuarios.id, { ViewChannel: false });
+                        await channel.permissionOverwrites.edit(rolVerificadoId, { ViewChannel: false });
                         await channel.permissionOverwrites.edit(rolVentasId, { ViewChannel: true, ReadMessageHistory: true });
                         continue; 
                     }
 
                     if (esTicketPrivado && channel.type !== 4 && channel.name.toLowerCase() !== 'ticket') {
+                        await channel.permissionOverwrites.edit(everyoneId, { ViewChannel: false });
                         await channel.permissionOverwrites.edit(rolUsuarios.id, { ViewChannel: false });
+                        await channel.permissionOverwrites.edit(rolVerificadoId, { ViewChannel: false });
                         await channel.permissionOverwrites.edit(rolFriendsId, { ViewChannel: false });
                         await channel.permissionOverwrites.edit(rolVentasId, { 
                             ViewChannel: true, SendMessages: true, ReadMessageHistory: true, AttachFiles: true
@@ -126,30 +130,28 @@ module.exports = {
                         continue;
                     }
 
-                    // 4. Canales de escritura
+                    // 5. Canales de escritura pública (Feedback, Chat, etc.)
                     if (canalesPermitidosEscritura.includes(channel.id) || channel.parentId === categoriaChatId) {
                         await channel.permissionOverwrites.edit(everyoneId, { ViewChannel: false, CreateInstantInvite: false });
                         
-                        const permsEscritura = {
-                            ViewChannel: true, ReadMessageHistory: true, SendMessages: true, AddReactions: true, AttachFiles: true, EmbedLinks: true
-                        };
+                        const permisosEscritura = { ViewChannel: true, ReadMessageHistory: true, SendMessages: true, AddReactions: true, AttachFiles: true, EmbedLinks: true };
+                        await channel.permissionOverwrites.edit(rolUsuarios.id, permisosEscritura);
+                        await channel.permissionOverwrites.edit(rolVerificadoId, permisosEscritura);
                         
-                        await channel.permissionOverwrites.edit(rolUsuarios.id, permsEscritura);
-                        await channel.permissionOverwrites.edit(rolFriendsId, permsEscritura);
+                        // Si el rol Friends también debe escribir acá, lo dejamos:
+                        await channel.permissionOverwrites.edit(rolFriendsId, permisosEscritura);
                         
                         actualizados++;
                         continue;
                     }
 
-                    // 5. RESTO DE CANALES: Solo lectura
-                    await channel.permissionOverwrites.edit(everyoneId, { ViewChannel: false, CreateInstantInvite: false });
+                    // 6. RESTO DE CANALES: Solo lectura
+                    const permisosLectura = { ViewChannel: true, ReadMessageHistory: true, SendMessages: false, AddReactions: false };
                     
-                    const permsLectura = {
-                        ViewChannel: true, ReadMessageHistory: true, SendMessages: false, AddReactions: false
-                    };
-
-                    await channel.permissionOverwrites.edit(rolUsuarios.id, permsLectura);
-                    await channel.permissionOverwrites.edit(rolFriendsId, permsLectura);
+                    await channel.permissionOverwrites.edit(everyoneId, { ViewChannel: false, CreateInstantInvite: false });
+                    await channel.permissionOverwrites.edit(rolUsuarios.id, permisosLectura);
+                    await channel.permissionOverwrites.edit(rolVerificadoId, permisosLectura);
+                    await channel.permissionOverwrites.edit(rolFriendsId, permisosLectura);
                     
                     actualizados++;
 
@@ -163,7 +165,7 @@ module.exports = {
             }
 
             await interaction.editReply({ 
-                content: `✅ ¡Permisos actualizados! Canales procesados exitosamente (se ignoraron los tickets borrados).` 
+                content: `✅ ¡Permisos actualizados! Canales procesados exitosamente.` 
             });
 
         } catch (error) {
