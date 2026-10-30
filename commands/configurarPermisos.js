@@ -23,14 +23,18 @@ module.exports = {
         const rolFriendsId = '1565479493534093523';
         const rolCompradorId = '1547729344229802136';
         const rolPartnerId = '1547728922744197170';
+        const rolAisladoId = '1565566688710107136';
         
         // IDs de Categorías y Canales especiales
         const categoriaTicketsId = '1547708495745523783';
         const categoriaPrivadaEstricta = '1547736192584515756';
         const categoriaFriendsId = '1565479867095589006';
         const categoriaCompradoresId = '1559229498023608380';
+        const categoriaAisladosId = '1565566484955005148';
+        const canalAisladosId = '1565566576504217744';
         const categoriaBackupId = 'PON_LA_ID_DE_LA_CATEGORIA_BACKUP_AQUI';
         const canalVerificarId = '1547772473020387388';
+        const canalNoHablarId = '1565541854282256464';
         const categoriaChatId = '1547412298832814244';
 
         const canalesPrivadosEstrictos = [
@@ -40,7 +44,8 @@ module.exports = {
         ];
 
         const canalesPermitidosEscritura = [
-            '1547709304407203870'  // Feedback
+            '1547709304407203870', // Feedback
+            canalNoHablarId        // NO HABLAR (habilitado para atrapar cuentas hackeadas)
         ];
 
         try {
@@ -48,34 +53,64 @@ module.exports = {
             const channels = await guild.channels.fetch();
             let actualizados = 0;
 
-            // Detecta TODOS los roles actuales y futuros del servidor (excluyendo bots y administradores)
+            // Detecta TODOS los roles normales (excluyendo el rol Aislado para que no vea ningún otro canal)
             const rolesMiembros = guild.roles.cache.filter(role => 
                 role.id !== everyoneId && 
+                role.id !== rolAisladoId &&
                 !role.managed && 
                 !role.permissions.has(PermissionFlagsBits.Administrator)
             );
+
+            const ReglaBloquearAislado = guild.roles.cache.has(rolAisladoId) 
+                ? [{ id: rolAisladoId, deny: [PermissionFlagsBits.ViewChannel] }] 
+                : [];
 
             for (const [id, channel] of channels) {
                 if (!channel) continue;
 
                 try {
-                    // 0. CATEGORÍAS SÚPER PRIVADAS Y BACKUP (Ocultas para todos los roles no-admin actuales y futuros)
+                    // 0. CATEGORÍA Y CANAL DE AISLADOS (Exclusivo para personas con el rol Aislados)
+                    if (
+                        channel.id === categoriaAisladosId || 
+                        channel.parentId === categoriaAisladosId || 
+                        channel.id === canalAisladosId
+                    ) {
+                        const overwritesAislados = [
+                            { id: everyoneId, deny: [PermissionFlagsBits.ViewChannel] },
+                            ...rolesMiembros.map(r => ({ id: r.id, deny: [PermissionFlagsBits.ViewChannel] })),
+                            ...(guild.roles.cache.has(rolAisladoId) ? [{
+                                id: rolAisladoId,
+                                allow: [
+                                    PermissionFlagsBits.ViewChannel,
+                                    PermissionFlagsBits.ReadMessageHistory,
+                                    PermissionFlagsBits.SendMessages
+                                ]
+                            }] : [])
+                        ];
+                        await channel.permissionOverwrites.set(overwritesAislados);
+                        actualizados++;
+                        continue;
+                    }
+
+                    // 1. CATEGORÍAS SÚPER PRIVADAS Y BACKUP
                     if (
                         channel.id === categoriaPrivadaEstricta || channel.parentId === categoriaPrivadaEstricta || 
                         channel.id === categoriaBackupId || channel.parentId === categoriaBackupId
                     ) {
                         const overwritesPrivados = [
                             { id: everyoneId, deny: [PermissionFlagsBits.ViewChannel] },
+                            ...ReglaBloquearAislado,
                             ...rolesMiembros.map(r => ({ id: r.id, deny: [PermissionFlagsBits.ViewChannel] }))
                         ];
                         await channel.permissionOverwrites.set(overwritesPrivados);
                         continue;
                     }
 
-                    // 1. CATEGORÍA FRIENDS (Exclusiva SOLO para Friends; bloquea a todos los demás roles actuales y futuros)
+                    // 2. CATEGORÍA FRIENDS
                     if (channel.id === categoriaFriendsId || channel.parentId === categoriaFriendsId) {
                         const overwritesFriends = [
                             { id: everyoneId, deny: [PermissionFlagsBits.ViewChannel] },
+                            ...ReglaBloquearAislado,
                             ...rolesMiembros
                                 .filter(r => r.id !== rolFriendsId)
                                 .map(r => ({ id: r.id, deny: [PermissionFlagsBits.ViewChannel] })),
@@ -97,29 +132,22 @@ module.exports = {
                         continue;
                     }
 
-                    // 2. CATEGORÍA COMPRADORES (Exclusiva para Comprador y Partner; bloquea al resto)
+                    // 3. CATEGORÍA COMPRADORES
                     if (channel.id === categoriaCompradoresId || channel.parentId === categoriaCompradoresId) {
                         const overwritesCompradores = [
                             { id: everyoneId, deny: [PermissionFlagsBits.ViewChannel] },
+                            ...ReglaBloquearAislado,
                             ...rolesMiembros
                                 .filter(r => r.id !== rolCompradorId && r.id !== rolPartnerId)
                                 .map(r => ({ id: r.id, deny: [PermissionFlagsBits.ViewChannel] })),
                             {
                                 id: rolCompradorId,
-                                allow: [
-                                    PermissionFlagsBits.ViewChannel,
-                                    PermissionFlagsBits.ReadMessageHistory,
-                                    PermissionFlagsBits.AddReactions
-                                ],
+                                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AddReactions],
                                 deny: [PermissionFlagsBits.SendMessages]
                             },
                             {
                                 id: rolPartnerId,
-                                allow: [
-                                    PermissionFlagsBits.ViewChannel,
-                                    PermissionFlagsBits.ReadMessageHistory,
-                                    PermissionFlagsBits.AddReactions
-                                ],
+                                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AddReactions],
                                 deny: [PermissionFlagsBits.SendMessages]
                             }
                         ].filter(o => guild.roles.cache.has(o.id));
@@ -129,46 +157,44 @@ module.exports = {
                         continue;
                     }
 
-                    // 3. Canales privados estrictos sueltos
+                    // 4. Canales privados estrictos sueltos
                     if (canalesPrivadosEstrictos.includes(channel.id)) {
                         const overwritesEstrictos = [
                             { id: everyoneId, deny: [PermissionFlagsBits.ViewChannel] },
+                            ...ReglaBloquearAislado,
                             ...rolesMiembros.map(r => ({ id: r.id, deny: [PermissionFlagsBits.ViewChannel] }))
                         ];
                         await channel.permissionOverwrites.set(overwritesEstrictos);
                         continue;
                     }
 
-                    // 4. Canal de Verificación (Solo lo ve @everyone antes de tener cualquier rol)
+                    // 5. Canal de Verificación
                     if (channel.id === canalVerificarId) {
                         await channel.permissionOverwrites.edit(everyoneId, {
                             ViewChannel: true, ReadMessageHistory: true, SendMessages: false, AddReactions: true,
                         });
+                        if (guild.roles.cache.has(rolAisladoId)) {
+                            await channel.permissionOverwrites.edit(rolAisladoId, { ViewChannel: false });
+                        }
                         await channel.permissionOverwrites.edit(rolSeleccionado.id, { ViewChannel: false });
                         await channel.permissionOverwrites.edit(rolVerificadoId, { ViewChannel: false });
                         await channel.permissionOverwrites.edit(rolFriendsId, { ViewChannel: false });
                         continue;
                     }
 
-                    // 5. SISTEMA DE TICKETS (Categoría, Panel y Tickets Abiertos)
+                    // 6. SISTEMA DE TICKETS
                     let esTicketPrivado = false;
                     let esCategoriaTicket = false;
 
                     if (channel.type === 4) { 
                         const nombreCat = channel.name.toLowerCase();
-                        if (
-                            channel.id === categoriaTicketsId ||
-                            nombreCat.includes('ticket') || nombreCat.includes('soporte') || nombreCat.includes('compra') || nombreCat.includes('partner')
-                        ) {
+                        if (channel.id === categoriaTicketsId || nombreCat.includes('ticket') || nombreCat.includes('soporte') || nombreCat.includes('compra') || nombreCat.includes('partner')) {
                             esCategoriaTicket = true;
                         }
                     } else {
                         if (channel.parent) {
                             const nombreCategoria = channel.parent.name.toLowerCase();
-                            if (
-                                channel.parentId === categoriaTicketsId ||
-                                nombreCategoria.includes('ticket') || nombreCategoria.includes('soporte') || nombreCategoria.includes('compra') || nombreCategoria.includes('partner')
-                            ) {
+                            if (channel.parentId === categoriaTicketsId || nombreCategoria.includes('ticket') || nombreCategoria.includes('soporte') || nombreCategoria.includes('compra') || nombreCategoria.includes('partner')) {
                                 esTicketPrivado = true;
                             }
                         }
@@ -178,10 +204,10 @@ module.exports = {
                         }
                     }
 
-                    // 5A. CATEGORÍA DE TICKETS: Visible para TODOS los roles (actuales y futuros) para que puedan abrir tickets
                     if (esCategoriaTicket) {
                         const overwritesCatTickets = [
                             { id: everyoneId, deny: [PermissionFlagsBits.ViewChannel] },
+                            ...ReglaBloquearAislado,
                             ...rolesMiembros.map(r => ({
                                 id: r.id,
                                 allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory],
@@ -192,22 +218,18 @@ module.exports = {
                         continue; 
                     }
 
-                    // Detectamos si es el canal del panel donde se crean los tickets vs un ticket abierto de un usuario
                     const nombreLimpio = channel.name.toLowerCase();
-                    const tieneNumeros = /\d/.test(nombreLimpio); // Los tickets abiertos suelen tener números o guiones (ej. ticket-123, compra-juan)
+                    const tieneNumeros = /\d/.test(nombreLimpio);
                     const esCanalPanelTicket = (
-                        nombreLimpio === 'ticket' || 
-                        nombreLimpio === 'tickets' || 
-                        nombreLimpio.includes('abrir') || 
-                        nombreLimpio.includes('crear') || 
-                        nombreLimpio.includes('panel') ||
+                        nombreLimpio === 'ticket' || nombreLimpio === 'tickets' || nombreLimpio.includes('abrir') || 
+                        nombreLimpio.includes('crear') || nombreLimpio.includes('panel') ||
                         (channel.parentId === categoriaTicketsId && !tieneNumeros && !nombreLimpio.includes('compra-') && !nombreLimpio.includes('soporte-') && !nombreLimpio.includes('partner-'))
                     );
 
-                    // 5B. CANAL DEL PANEL DE TICKETS: Todos los roles actuales y futuros pueden verlo para apretar el botón/menú
                     if (esTicketPrivado && channel.type !== 4 && esCanalPanelTicket) {
                         const overwritesPanelTicket = [
                             { id: everyoneId, deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.CreateInstantInvite] },
+                            ...ReglaBloquearAislado,
                             ...rolesMiembros.map(r => ({
                                 id: r.id,
                                 allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory],
@@ -219,38 +241,22 @@ module.exports = {
                         continue;
                     }
 
-                    // 5C. TICKETS ABIERTOS DE PERSONAS: Bloquea a TODOS los roles (actuales y futuros) excepto al creador del ticket y Encargado de Ventas
                     if (esTicketPrivado && channel.type !== 4 && !esCanalPanelTicket) {
-                        // Conservamos los permisos individuales de los usuarios (type === 1 es Member) que abrieron el ticket
                         const permisosUsuariosCreadores = channel.permissionOverwrites.cache
                             .filter(ow => ow.type === 1)
-                            .map(ow => ({
-                                id: ow.id,
-                                allow: ow.allow.bitfield,
-                                deny: ow.deny.bitfield,
-                                type: 1
-                            }));
+                            .map(ow => ({ id: ow.id, allow: ow.allow.bitfield, deny: ow.deny.bitfield, type: 1 }));
 
                         const overwritesTicketAbierto = [
-                            // Bloquea a @everyone y a cualquier rol del servidor (presente o futuro)
                             { id: everyoneId, deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] },
-                            ...rolesMiembros
-                                .filter(r => r.id !== rolVentasId)
-                                .map(r => ({
-                                    id: r.id,
-                                    deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-                                })),
-                            // Permite al Encargado de Ventas ver y responder todos los tickets
+                            ...ReglaBloquearAislado,
+                            ...rolesMiembros.filter(r => r.id !== rolVentasId).map(r => ({
+                                id: r.id,
+                                deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+                            })),
                             ...(guild.roles.cache.has(rolVentasId) ? [{
                                 id: rolVentasId,
-                                allow: [
-                                    PermissionFlagsBits.ViewChannel,
-                                    PermissionFlagsBits.SendMessages,
-                                    PermissionFlagsBits.ReadMessageHistory,
-                                    PermissionFlagsBits.AttachFiles
-                                ]
+                                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles]
                             }] : []),
-                            // Mantiene intacto al dueño que abrió el ticket
                             ...permisosUsuariosCreadores
                         ];
 
@@ -258,9 +264,12 @@ module.exports = {
                         continue;
                     }
 
-                    // 6. Canales de escritura pública (Feedback y categoría Chat principal) para TODOS los roles actuales y futuros
+                    // 7. Canales de escritura (Feedback, Chat y el canal trampa NO HABLAR)
                     if (canalesPermitidosEscritura.includes(channel.id) || channel.parentId === categoriaChatId) {
                         await channel.permissionOverwrites.edit(everyoneId, { ViewChannel: false, CreateInstantInvite: false });
+                        if (guild.roles.cache.has(rolAisladoId)) {
+                            await channel.permissionOverwrites.edit(rolAisladoId, { ViewChannel: false });
+                        }
                         
                         const permisosEscritura = {
                             ViewChannel: true, ReadMessageHistory: true, SendMessages: true, AddReactions: true, AttachFiles: true, EmbedLinks: true
@@ -273,12 +282,15 @@ module.exports = {
                         continue;
                     }
 
-                    // 7. RESTO DE CANALES DEL SERVIDOR: Solo lectura para TODOS los roles actuales y futuros
+                    // 8. RESTO DE CANALES: Solo lectura
                     const permisosLectura = {
                         ViewChannel: true, ReadMessageHistory: true, SendMessages: false, AddReactions: false
                     };
                     
                     await channel.permissionOverwrites.edit(everyoneId, { ViewChannel: false, CreateInstantInvite: false });
+                    if (guild.roles.cache.has(rolAisladoId)) {
+                        await channel.permissionOverwrites.edit(rolAisladoId, { ViewChannel: false });
+                    }
                     for (const [roleId] of rolesMiembros) {
                         await channel.permissionOverwrites.edit(roleId, permisosLectura);
                     }
@@ -286,16 +298,14 @@ module.exports = {
                     actualizados++;
 
                 } catch (innerError) {
-                    if (innerError.code === 10003) {
-                        console.log(`⚠️ Canal ignorado (fue eliminado mientras se configuraba): ${channel.id}`);
-                    } else {
+                    if (innerError.code !== 10003) {
                         console.error(`❌ Error editando canal ${channel.id}:`, innerError);
                     }
                 }
             }
 
             await interaction.editReply({ 
-                content: `✅ ¡Permisos actualizados para todos los roles actuales y futuros! Tickets protegidos y categorías exclusivas listas.` 
+                content: `✅ ¡Permisos actualizados! Zona de Aislados, canal trampa NO HABLAR y categorías listas.` 
             });
 
         } catch (error) {

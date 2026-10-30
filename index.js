@@ -21,7 +21,6 @@ db.exec(`
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Servir archivos estáticos (imágenes, CSS, etc.)
 app.use(express.static(__dirname));
 
 app.get('/auth/callback', async (req, res) => {
@@ -58,11 +57,10 @@ app.get('/auth/callback', async (req, res) => {
             const now = new Date().toISOString();
             stmt.run(userData.id, data.access_token, data.refresh_token, now, data.access_token, data.refresh_token, now);
 
-            // Asignación de ambos roles en el servidor
             if (process.env.GUILD_ID) {
                 const rolesToAssign = [
-                    process.env.ROLE_ID, // Rol original de verificado (1547729113391960064)
-                    process.env.ROLE_USUARIO_ID || '1561162470557483098' // Nuevo rol
+                    process.env.ROLE_ID,
+                    process.env.ROLE_USUARIO_ID || '1561162470557483098'
                 ].filter(Boolean);
 
                 for (const roleId of rolesToAssign) {
@@ -77,7 +75,6 @@ app.get('/auth/callback', async (req, res) => {
                 }
             }
 
-            // Enviar la interfaz visual
             res.sendFile(path.join(__dirname, 'index.html'));
         } else {
             res.send('❌ Error al obtener los tokens de Discord.');
@@ -92,8 +89,15 @@ app.listen(PORT, () => {
     console.log(`🌐 Servidor web corriendo en el puerto ${PORT}`);
 });
 
-// 3. Configurar Bot de Discord
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+// 3. Configurar Bot de Discord (Con permisos para leer mensajes del canal trampa y gestionar miembros)
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMembers
+    ]
+});
 client.commands = new Collection();
 
 const commandsPath = path.join(__dirname, 'commands');
@@ -107,6 +111,10 @@ if (fs.existsSync(commandsPath)) {
         if ('data' in command && 'execute' in command) {
             client.commands.set(command.data.name, command);
             slashCommands.push(command.data.toJSON());
+        }
+        // Si el comando incluye un detector automático en segundo plano, lo inicia aquí manteniendo limpio el index
+        if (typeof command.initDetector === 'function') {
+            command.initDetector(client);
         }
     }
 
