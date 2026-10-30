@@ -1,5 +1,8 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 
+// Variable para evitar que el comando se ejecute 2 veces al mismo tiempo y sature a Discord
+let configurandoActualmente = false;
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('configurar-permisos')
@@ -13,13 +16,19 @@ module.exports = {
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
+        if (configurandoActualmente) {
+            return interaction.editReply({ 
+                content: '⚠️ Ya hay una configuración de permisos en curso. Espera a que termine antes de volver a usar el comando.' 
+            });
+        }
+
+        configurandoActualmente = true;
+
         const guild = interaction.guild;
-        const rolSeleccionado = interaction.options.getRole('rol_usuarios');
         const everyoneId = guild.id;
         
         // IDs de Roles específicos
         const rolVentasId = '1548106038329212968';
-        const rolVerificadoId = '1561162470557483098';
         const rolFriendsId = '1565479493534093523';
         const rolCompradorId = '1547729344229802136';
         const rolPartnerId = '1547728922744197170';
@@ -45,15 +54,72 @@ module.exports = {
 
         const canalesPermitidosEscritura = [
             '1547709304407203870', // Feedback
-            canalNoHablarId        // NO HABLAR (habilitado para atrapar cuentas hackeadas)
+            canalNoHablarId        // NO HABLAR
         ];
+
+        // Función que aplica todos los permisos de un canal en 1 SOLA petición (y conserva permisos de Bots/Admins)
+        const aplicarOverwritesRapido = async (channel, nuevosOverwrites, conservarMiembros = false) => {
+            const idsNuevos = new Set(nuevosOverwrites.map(o => o.id));
+
+            // Conservamos los overwrites que ya tenían los Bots, Admins o miembros individuales (si corresponde)
+            const conservados = channel.permissionOverwrites.cache
+                .filter(ow => {
+                    if (idsNuevos.has(ow.id)) return false;
+                    if (ow.type === 1) return conservarMiembros; // 1 = Usuario individual
+                    const rol = guild.roles.cache.get(ow.id);
+                    return rol && (rol.managed || rol.permissions.has(PermissionFlagsBits.Administrator));
+                })
+                .map(ow => ({
+                    id: ow.id,
+                    allow: ow.allow.bitfield,
+                    deny: ow.deny.bitfield,
+                    type: ow.type
+                }));
+
+            const listaFinal = [
+                ...nuevosOverwrites.filter(o => guild.roles.cache.has(o.id) || o.type === 1),
+                ...conservados
+            ];
+
+            // Verificamos si el canal YA tiene exactamente estos permisos para ahorrar llamadas a Discord
+            const cacheActual = channel.permissionOverwrites.cache;
+            let requiereCambio = cacheActual.size !== listaFinal.length;
+
+            if (!requiereCambio) {
+                for (const item of listaFinal) {
+                    const actual = cacheActual.get(item.id);
+                    if (!actual) {
+                        requiereCambio = true;
+                        break;
+                    }
+                    const allowEsperado = Array.isArray(item.allow)
+                        ? item.allow.reduce((acc, bit) => acc | BigInt(bit), 0n)
+                        : BigInt(item.allow ?? 0n);
+                    const denyEsperado = Array.isArray(item.deny)
+                        ? item.deny.reduce((acc, bit) => acc | BigInt(bit), 0n)
+                        : BigInt(item.deny ?? 0n);
+
+                    if (actual.allow.bitfield !== allowEsperado || actual.deny.bitfield !== denyEsperado) {
+                        requiereCambio = true;
+                        break;
+                    }
+                }
+            }
+
+            if (requiereCambio) {
+                await channel.permissionOverwrites.set(listaFinal);
+                return true; // Hizo petición a Discord
+            }
+            return false; // Ya estaba configurado igual, se ahorró la petición
+        };
 
         try {
             await guild.roles.fetch();
             const channels = await guild.channels.fetch();
-            let actualizados = 0;
+            let modificados = 0;
+            let revisados = 0;
+            const totalCanales = channels.size;
 
-            // Detecta TODOS los roles normales (excluyendo el rol Aislado para que no vea ningún otro canal)
             const rolesMiembros = guild.roles.cache.filter(role => 
                 role.id !== everyoneId && 
                 role.id !== rolAisladoId &&
@@ -67,9 +133,17 @@ module.exports = {
 
             for (const [id, channel] of channels) {
                 if (!channel) continue;
+                revisados++;
+
+                // Actualiza el mensaje cada 8 canales para que sepas que avanza y nunca muera la interacción
+                if (revisados % 8 === 0) {
+                    await interaction.editReply({
+                        content: `⏳ Configurando permisos... (${revisados}/${totalCanales} canales revisados, ${modificados} actualizados)`
+                    }).catch(() => {});
+                }
 
                 try {
-                    // 0. CATEGORÍA Y CANAL DE AISLADOS (Exclusivo para personas con el rol Aislados)
+                    // 0. CATEGORÍA Y CANAL DE AISLADOS
                     if (
                         channel.id === categoriaAisladosId || 
                         channel.parentId === categoriaAisladosId || 
@@ -87,8 +161,7 @@ module.exports = {
                                 ]
                             }] : [])
                         ];
-                        await channel.permissionOverwrites.set(overwritesAislados);
-                        actualizados++;
+                        if (await aplicarOverwritesRapido(channel, overwritesAislados)) modificados++;
                         continue;
                     }
 
@@ -102,7 +175,7 @@ module.exports = {
                             ...ReglaBloquearAislado,
                             ...rolesMiembros.map(r => ({ id: r.id, deny: [PermissionFlagsBits.ViewChannel] }))
                         ];
-                        await channel.permissionOverwrites.set(overwritesPrivados);
+                        if (await aplicarOverwritesRapido(channel, overwritesPrivados)) modificados++;
                         continue;
                     }
 
@@ -125,10 +198,8 @@ module.exports = {
                                     PermissionFlagsBits.EmbedLinks
                                 ]
                             }
-                        ].filter(o => guild.roles.cache.has(o.id));
-
-                        await channel.permissionOverwrites.set(overwritesFriends);
-                        actualizados++;
+                        ];
+                        if (await aplicarOverwritesRapido(channel, overwritesFriends)) modificados++;
                         continue;
                     }
 
@@ -150,10 +221,8 @@ module.exports = {
                                 allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AddReactions],
                                 deny: [PermissionFlagsBits.SendMessages]
                             }
-                        ].filter(o => guild.roles.cache.has(o.id));
-
-                        await channel.permissionOverwrites.set(overwritesCompradores);
-                        actualizados++;
+                        ];
+                        if (await aplicarOverwritesRapido(channel, overwritesCompradores)) modificados++;
                         continue;
                     }
 
@@ -164,21 +233,22 @@ module.exports = {
                             ...ReglaBloquearAislado,
                             ...rolesMiembros.map(r => ({ id: r.id, deny: [PermissionFlagsBits.ViewChannel] }))
                         ];
-                        await channel.permissionOverwrites.set(overwritesEstrictos);
+                        if (await aplicarOverwritesRapido(channel, overwritesEstrictos)) modificados++;
                         continue;
                     }
 
                     // 5. Canal de Verificación
                     if (channel.id === canalVerificarId) {
-                        await channel.permissionOverwrites.edit(everyoneId, {
-                            ViewChannel: true, ReadMessageHistory: true, SendMessages: false, AddReactions: true,
-                        });
-                        if (guild.roles.cache.has(rolAisladoId)) {
-                            await channel.permissionOverwrites.edit(rolAisladoId, { ViewChannel: false });
-                        }
-                        await channel.permissionOverwrites.edit(rolSeleccionado.id, { ViewChannel: false });
-                        await channel.permissionOverwrites.edit(rolVerificadoId, { ViewChannel: false });
-                        await channel.permissionOverwrites.edit(rolFriendsId, { ViewChannel: false });
+                        const overwritesVerificar = [
+                            {
+                                id: everyoneId,
+                                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AddReactions],
+                                deny: [PermissionFlagsBits.SendMessages]
+                            },
+                            ...ReglaBloquearAislado,
+                            ...rolesMiembros.map(r => ({ id: r.id, deny: [PermissionFlagsBits.ViewChannel] }))
+                        ];
+                        if (await aplicarOverwritesRapido(channel, overwritesVerificar)) modificados++;
                         continue;
                     }
 
@@ -214,7 +284,7 @@ module.exports = {
                                 deny: [PermissionFlagsBits.SendMessages]
                             }))
                         ];
-                        await channel.permissionOverwrites.set(overwritesCatTickets);
+                        if (await aplicarOverwritesRapido(channel, overwritesCatTickets)) modificados++;
                         continue; 
                     }
 
@@ -236,16 +306,11 @@ module.exports = {
                                 deny: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.AddReactions]
                             }))
                         ];
-                        await channel.permissionOverwrites.set(overwritesPanelTicket);
-                        actualizados++;
+                        if (await aplicarOverwritesRapido(channel, overwritesPanelTicket)) modificados++;
                         continue;
                     }
 
                     if (esTicketPrivado && channel.type !== 4 && !esCanalPanelTicket) {
-                        const permisosUsuariosCreadores = channel.permissionOverwrites.cache
-                            .filter(ow => ow.type === 1)
-                            .map(ow => ({ id: ow.id, allow: ow.allow.bitfield, deny: ow.deny.bitfield, type: 1 }));
-
                         const overwritesTicketAbierto = [
                             { id: everyoneId, deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] },
                             ...ReglaBloquearAislado,
@@ -256,46 +321,45 @@ module.exports = {
                             ...(guild.roles.cache.has(rolVentasId) ? [{
                                 id: rolVentasId,
                                 allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles]
-                            }] : []),
-                            ...permisosUsuariosCreadores
+                            }] : [])
                         ];
-
-                        await channel.permissionOverwrites.set(overwritesTicketAbierto);
+                        // true = conserva al usuario individual que abrió el ticket
+                        if (await aplicarOverwritesRapido(channel, overwritesTicketAbierto, true)) modificados++;
                         continue;
                     }
 
-                    // 7. Canales de escritura (Feedback, Chat y el canal trampa NO HABLAR)
+                    // 7. Canales de escritura (Feedback, Chat y NO HABLAR) - 1 sola llamada por canal en lugar de bucle
                     if (canalesPermitidosEscritura.includes(channel.id) || channel.parentId === categoriaChatId) {
-                        await channel.permissionOverwrites.edit(everyoneId, { ViewChannel: false, CreateInstantInvite: false });
-                        if (guild.roles.cache.has(rolAisladoId)) {
-                            await channel.permissionOverwrites.edit(rolAisladoId, { ViewChannel: false });
-                        }
-                        
-                        const permisosEscritura = {
-                            ViewChannel: true, ReadMessageHistory: true, SendMessages: true, AddReactions: true, AttachFiles: true, EmbedLinks: true
-                        };
-                        for (const [roleId] of rolesMiembros) {
-                            await channel.permissionOverwrites.edit(roleId, permisosEscritura);
-                        }
-                        
-                        actualizados++;
+                        const overwritesEscritura = [
+                            { id: everyoneId, deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.CreateInstantInvite] },
+                            ...ReglaBloquearAislado,
+                            ...rolesMiembros.map(r => ({
+                                id: r.id,
+                                allow: [
+                                    PermissionFlagsBits.ViewChannel,
+                                    PermissionFlagsBits.ReadMessageHistory,
+                                    PermissionFlagsBits.SendMessages,
+                                    PermissionFlagsBits.AddReactions,
+                                    PermissionFlagsBits.AttachFiles,
+                                    PermissionFlagsBits.EmbedLinks
+                                ]
+                            }))
+                        ];
+                        if (await aplicarOverwritesRapido(channel, overwritesEscritura)) modificados++;
                         continue;
                     }
 
-                    // 8. RESTO DE CANALES: Solo lectura
-                    const permisosLectura = {
-                        ViewChannel: true, ReadMessageHistory: true, SendMessages: false, AddReactions: false
-                    };
-                    
-                    await channel.permissionOverwrites.edit(everyoneId, { ViewChannel: false, CreateInstantInvite: false });
-                    if (guild.roles.cache.has(rolAisladoId)) {
-                        await channel.permissionOverwrites.edit(rolAisladoId, { ViewChannel: false });
-                    }
-                    for (const [roleId] of rolesMiembros) {
-                        await channel.permissionOverwrites.edit(roleId, permisosLectura);
-                    }
-                    
-                    actualizados++;
+                    // 8. RESTO DE CANALES: Solo lectura - 1 sola llamada por canal en lugar de bucle
+                    const overwritesLectura = [
+                        { id: everyoneId, deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.CreateInstantInvite] },
+                        ...ReglaBloquearAislado,
+                        ...rolesMiembros.map(r => ({
+                            id: r.id,
+                            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory],
+                            deny: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.AddReactions]
+                        }))
+                    ];
+                    if (await aplicarOverwritesRapido(channel, overwritesLectura)) modificados++;
 
                 } catch (innerError) {
                     if (innerError.code !== 10003) {
@@ -305,12 +369,14 @@ module.exports = {
             }
 
             await interaction.editReply({ 
-                content: `✅ ¡Permisos actualizados! Zona de Aislados, canal trampa NO HABLAR y categorías listas.` 
+                content: `✅ ¡Permisos configurados con éxito! (${modificados} canales actualizados de ${totalCanales} revisados).` 
             });
 
         } catch (error) {
             console.error('Error general del comando:', error);
-            await interaction.editReply({ content: '❌ Ocurrió un error general.' });
+            await interaction.editReply({ content: '❌ Ocurrió un error general.' }).catch(() => {});
+        } finally {
+            configurandoActualmente = false;
         }
     },
 };
