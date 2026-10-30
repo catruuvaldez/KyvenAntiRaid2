@@ -6,7 +6,7 @@ module.exports = {
         .setDescription('Bloquea masivamente el servidor protegiendo canales y manteniendo visibles los paneles')
         .addRoleOption(option =>
             option.setName('rol_usuarios')
-                .setDescription('El rol de Usuarios del servidor')
+                .setDescription('El rol de Usuarios (o Verificados) del servidor')
                 .setRequired(true))
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
     
@@ -16,6 +16,11 @@ module.exports = {
         const guild = interaction.guild;
         const rolUsuarios = interaction.options.getRole('rol_usuarios');
         const everyoneId = guild.id;
+        
+        // --- NUEVOS ROLES Y CATEGORÍAS ---
+        const rolFriendsId = '1565479493534093523';
+        const rolVerificadoId = '1561162470557483098'; // Registrado en el código como referencia
+        const categoriaFriendsId = '1565479867095589006';
         
         // ID DEL ENCARGADO DE VENTAS:
         const rolVentasId = '1548106038329212968';
@@ -48,12 +53,12 @@ module.exports = {
             for (const [id, channel] of channels) {
                 if (!channel) continue;
 
-                // PROTECCIÓN ANTICRASH: Si un canal se borra durante el proceso, lo ignora y sigue
                 try {
                     // 0. CATEGORÍA SÚPER PRIVADA
                     if (channel.id === categoriaPrivadaEstricta || channel.parentId === categoriaPrivadaEstricta) {
                         await channel.permissionOverwrites.edit(everyoneId, { ViewChannel: false });
                         await channel.permissionOverwrites.edit(rolUsuarios.id, { ViewChannel: false });
+                        await channel.permissionOverwrites.edit(rolFriendsId, { ViewChannel: false });
                         await channel.permissionOverwrites.edit(rolVentasId, { ViewChannel: false });
                         continue;
                     }
@@ -62,6 +67,7 @@ module.exports = {
                     if (canalesPrivadosEstrictos.includes(channel.id)) {
                         await channel.permissionOverwrites.edit(everyoneId, { ViewChannel: false });
                         await channel.permissionOverwrites.edit(rolUsuarios.id, { ViewChannel: false });
+                        await channel.permissionOverwrites.edit(rolFriendsId, { ViewChannel: false });
                         await channel.permissionOverwrites.edit(rolVentasId, { ViewChannel: false });
                         continue;
                     }
@@ -70,6 +76,16 @@ module.exports = {
                     if (channel.id === canalVerificarId) {
                         await channel.permissionOverwrites.edit(everyoneId, {
                             ViewChannel: true, ReadMessageHistory: true, SendMessages: false, AddReactions: true,
+                        });
+                        continue;
+                    }
+
+                    // --- NUEVO: CATEGORÍA FRIENDS (Solo para el rol Friends) ---
+                    if (channel.id === categoriaFriendsId || channel.parentId === categoriaFriendsId) {
+                        await channel.permissionOverwrites.edit(everyoneId, { ViewChannel: false });
+                        await channel.permissionOverwrites.edit(rolUsuarios.id, { ViewChannel: false });
+                        await channel.permissionOverwrites.edit(rolFriendsId, { 
+                            ViewChannel: true, ReadMessageHistory: true, SendMessages: true, AttachFiles: true, EmbedLinks: true 
                         });
                         continue;
                     }
@@ -103,6 +119,7 @@ module.exports = {
 
                     if (esTicketPrivado && channel.type !== 4 && channel.name.toLowerCase() !== 'ticket') {
                         await channel.permissionOverwrites.edit(rolUsuarios.id, { ViewChannel: false });
+                        await channel.permissionOverwrites.edit(rolFriendsId, { ViewChannel: false });
                         await channel.permissionOverwrites.edit(rolVentasId, { 
                             ViewChannel: true, SendMessages: true, ReadMessageHistory: true, AttachFiles: true
                         });
@@ -112,22 +129,31 @@ module.exports = {
                     // 4. Canales de escritura
                     if (canalesPermitidosEscritura.includes(channel.id) || channel.parentId === categoriaChatId) {
                         await channel.permissionOverwrites.edit(everyoneId, { ViewChannel: false, CreateInstantInvite: false });
-                        await channel.permissionOverwrites.edit(rolUsuarios.id, {
+                        
+                        const permsEscritura = {
                             ViewChannel: true, ReadMessageHistory: true, SendMessages: true, AddReactions: true, AttachFiles: true, EmbedLinks: true
-                        });
+                        };
+                        
+                        await channel.permissionOverwrites.edit(rolUsuarios.id, permsEscritura);
+                        await channel.permissionOverwrites.edit(rolFriendsId, permsEscritura);
+                        
                         actualizados++;
                         continue;
                     }
 
                     // 5. RESTO DE CANALES: Solo lectura
                     await channel.permissionOverwrites.edit(everyoneId, { ViewChannel: false, CreateInstantInvite: false });
-                    await channel.permissionOverwrites.edit(rolUsuarios.id, {
+                    
+                    const permsLectura = {
                         ViewChannel: true, ReadMessageHistory: true, SendMessages: false, AddReactions: false
-                    });
+                    };
+
+                    await channel.permissionOverwrites.edit(rolUsuarios.id, permsLectura);
+                    await channel.permissionOverwrites.edit(rolFriendsId, permsLectura);
+                    
                     actualizados++;
 
                 } catch (innerError) {
-                    // Si el error es 10003 (Unknown Channel), simplemente lo ignoramos porque el canal fue borrado
                     if (innerError.code === 10003) {
                         console.log(`⚠️ Canal ignorado (fue eliminado mientras se configuraba): ${channel.id}`);
                     } else {
