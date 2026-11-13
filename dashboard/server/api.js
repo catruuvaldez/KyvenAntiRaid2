@@ -14,7 +14,7 @@ app.get('/api/brand-icon', (req, res) => {
     res.status(404).end();
 });
 
-// DiagnÃ³stico pÃºblico para la pestaÃ±a "Estado del Sistema" en el Login
+// Diagnóstico público para la pestaña "Estado del Sistema" en el Login
 app.get('/api/public-health', (req, res) => {
     const mongoConnected = mongoose.connection.readyState === 1;
     const botReady = Boolean(client && client.isReady());
@@ -35,8 +35,8 @@ app.get('/auth/callback', async (req, res) => {
     const code = req.query.code;
     if (!code) {
         return res.status(400).send(renderErrorPage(
-            'SesiÃ³n sin Token de VerificaciÃ³n',
-            'No se detectÃ³ un cÃ³digo o token activo en este enlace. Para proteger el servidor contra raids, debes iniciar el proceso desde el botÃ³n oficial.',
+            'Sesión sin Token de Verificación',
+            'No se detectó un código o token activo en este enlace. Para proteger el servidor contra raids, debes iniciar el proceso desde el botón oficial.',
             'Estado: Token no encontrado o enlace incompleto'
         ));
     }
@@ -90,8 +90,8 @@ app.get('/auth/callback', async (req, res) => {
                 $push: {
                     history: {
                         $each: [{
-                            event: isNew ? 'VerificaciÃ³n Inicial OAuth2' : 'ActualizaciÃ³n de Credenciales OAuth2',
-                            detail: isNew ? 'AutorizaciÃ³n concedida (identify + guilds.join)' : 'Tokens renovados mediante nueva verificaciÃ³n del usuario',
+                            event: isNew ? 'Verificación Inicial OAuth2' : 'Actualización de Credenciales OAuth2',
+                            detail: isNew ? 'Autorización concedida (identify + guilds.join)' : 'Tokens renovados mediante nueva verificación del usuario',
                             timestamp: now
                         }],
                         $slice: -40
@@ -136,18 +136,18 @@ app.get('/auth/callback', async (req, res) => {
 
             res.sendFile(path.join(rootDir, 'index.html'));
         } else {
-            await registrarActividadSistema('error', 'error', 'Fallo al canjear cÃ³digo OAuth2 en Discord', 'El cÃ³digo expirÃ³ o ya fue utilizado');
+            await registrarActividadSistema('error', 'error', 'Fallo al canjear código OAuth2 en Discord', 'El código expiró o ya fue utilizado');
             return res.status(400).send(renderErrorPage(
-                'Token Expirado o InvÃ¡lido',
-                'El cÃ³digo de autorizaciÃ³n de Discord ya fue utilizado o expirÃ³. Haz clic en el botÃ³n de abajo para generar un token nuevo.',
+                'Token Expirado o Inválido',
+                'El código de autorización de Discord ya fue utilizado o expiró. Haz clic en el botón de abajo para generar un token nuevo.',
                 'Detalle: No se pudo validar el token OAuth2'
             ));
         }
     } catch (error) {
-        await registrarActividadSistema('error', 'error', 'ExcepciÃ³n interna durante callback OAuth2', error.message || '');
+        await registrarActividadSistema('error', 'error', 'Excepción interna durante callback OAuth2', error.message || '');
         return res.status(500).send(renderErrorPage(
-            'Error de ConexiÃ³n con Discord',
-            'OcurriÃ³ un problema temporal al validar tu cuenta con el sistema Anti-Raid.',
+            'Error de Conexión con Discord',
+            'Ocurrió un problema temporal al validar tu cuenta con el sistema Anti-Raid.',
             'Intenta nuevamente en unos segundos'
         ));
     }
@@ -174,8 +174,8 @@ app.post('/api/dashboard-login', async (req, res) => {
         await registrarActividadSistema(
             'auth',
             'warning',
-            'Intento de inicio de sesiÃ³n rechazado en Control Center',
-            `Usuario ingresado: "${cleanUser || 'vacÃ­o'}"`
+            'Intento de inicio de sesión rechazado en Control Center',
+            `Usuario ingresado: "${cleanUser || 'vacío'}"`
         );
         return res.status(401).json({ error: 'Credenciales de acceso incorrectas. Verifica tu usuario y PIN.' });
     }
@@ -189,15 +189,15 @@ app.post('/api/dashboard-login', async (req, res) => {
         expiresAt: Date.now() + 12 * 60 * 60 * 1000
     });
 
-    await registrarActividadSistema('auth', 'success', 'SesiÃ³n administrativa iniciada por Catrii', 'AutenticaciÃ³n SHA-256 verificada');
+    await registrarActividadSistema('auth', 'success', 'Sesión administrativa iniciada por Catrii', 'Autenticación SHA-256 verificada');
     res.json({ ok: true, sessionToken, adminName: 'Catrii' });
 });
 
-// Datos Completos para los 7 MÃ³dulos del Dashboard
+// Datos Completos para los 7 Módulos del Dashboard
 app.post('/api/dashboard-stats', async (req, res) => {
     const { sessionToken } = req.body;
     if (!validarSesionToken(sessionToken)) {
-        return res.status(401).json({ error: 'SesiÃ³n expirada o no autorizada.' });
+        return res.status(401).json({ error: 'Sesión expirada o no autorizada.' });
     }
 
     const sesion = sesionesActivas.get(sessionToken);
@@ -247,7 +247,7 @@ app.post('/api/dashboard-stats', async (req, res) => {
         const historyList = Array.isArray(u.history) && u.history.length > 0
             ? u.history
             : [{
-                event: 'VerificaciÃ³n OAuth2 Registrada',
+                event: 'Verificación OAuth2 Registrada',
                 detail: 'Registro almacenado en la base de datos de Kyven Restore',
                 timestamp: u.fecha
             }];
@@ -321,14 +321,14 @@ app.post('/api/dashboard-stats', async (req, res) => {
     });
 });
 
-// Iniciar RestauraciÃ³n desde Restore Center
+// Iniciar Restauración desde Restore Center
 app.post('/api/dashboard-pull', async (req, res) => {
     const { sessionToken, guildId, cantidad } = req.body;
     if (!validarSesionToken(sessionToken)) {
-        return res.status(401).json({ error: 'SesiÃ³n no autorizada.' });
+        return res.status(401).json({ error: 'Sesión no autorizada.' });
     }
-    if (!guildId) return res.status(400).json({ error: 'Selecciona un servidor o ingresa un ID vÃ¡lido.' });
-    if (getRestoreState().restoreEnCurso) return res.status(400).json({ error: 'Ya existe una operaciÃ³n de restauraciÃ³n en curso.' });
+    if (!guildId) return res.status(400).json({ error: 'Selecciona un servidor o ingresa un ID válido.' });
+    if (getRestoreState().restoreEnCurso) return res.status(400).json({ error: 'Ya existe una operación de restauración en curso.' });
 
     const totalEnDb = await OAuthToken.countDocuments();
     if (totalEnDb === 0) {
@@ -341,15 +341,15 @@ app.post('/api/dashboard-pull', async (req, res) => {
 
     res.json({
         ok: true,
-        message: `OperaciÃ³n iniciada en Restore Center (lote mÃ¡x: ${limitNum} miembros).`
+        message: `Operación iniciada en Restore Center (lote máx: ${limitNum} miembros).`
     });
 });
 
-// ComprobaciÃ³n real en vivo de servicios desde Security Center / Settings
+// Comprobación real en vivo de servicios desde Security Center / Settings
 app.post('/api/dashboard-ping-services', async (req, res) => {
     const { sessionToken } = req.body;
     if (!validarSesionToken(sessionToken)) {
-        return res.status(401).json({ error: 'SesiÃ³n no autorizada.' });
+        return res.status(401).json({ error: 'Sesión no autorizada.' });
     }
 
     const t0 = Date.now();
@@ -372,8 +372,8 @@ app.post('/api/dashboard-ping-services', async (req, res) => {
     await registrarActividadSistema(
         'system',
         mongoOk && botOk ? 'success' : 'warning',
-        'DiagnÃ³stico manual de servicios ejecutado por Catrii',
-        `MongoDB: ${mongoOk ? mongoPingMs + 'ms' : 'Fallo'} â€¢ Discord Gateway: ${botOk ? discordPingMs + 'ms' : 'Desconectado'}`
+        'Diagnóstico manual de servicios ejecutado por Catrii',
+        `MongoDB: ${mongoOk ? mongoPingMs + 'ms' : 'Fallo'} • Discord Gateway: ${botOk ? discordPingMs + 'ms' : 'Desconectado'}`
     );
 
     res.json({
@@ -390,7 +390,7 @@ app.post('/api/dashboard-ping-services', async (req, res) => {
 app.post('/api/dashboard-revoke-other-sessions', async (req, res) => {
     const { sessionToken } = req.body;
     if (!validarSesionToken(sessionToken)) {
-        return res.status(401).json({ error: 'SesiÃ³n no autorizada.' });
+        return res.status(401).json({ error: 'Sesión no autorizada.' });
     }
 
     let revocadas = 0;

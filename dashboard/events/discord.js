@@ -21,7 +21,7 @@ if (fs.existsSync(commandsPath)) {
             if (!tieneCodigo && jsonCmd.options.every(o => o.type !== 1 && o.type !== 2)) {
                 jsonCmd.options.push({
                     name: 'codigo',
-                    description: 'CÃ³digo de seguridad personal (o dÃ©jalo vacÃ­o para abrir ventana de PIN)',
+                    description: 'Código de seguridad personal (o déjalo vacío para abrir ventana de PIN)',
                     type: 3,
                     required: false
                 });
@@ -38,28 +38,25 @@ if (fs.existsSync(commandsPath)) {
 const pullCmd = new SlashCommandBuilder()
     .setName('restore_pull')
     .setDescription('Transfiere hasta 500 miembros de MongoDB a este servidor sin bloqueos')
-    .addStringOption(opt => opt.setName('codigo').setDescription('Tu cÃ³digo de seguridad personal').setRequired(false))
+    .addStringOption(opt => opt.setName('codigo').setDescription('Tu código de seguridad personal').setRequired(false))
     .addIntegerOption(opt => opt.setName('cantidad').setDescription('Cantidad de miembros (1 a 500)').setMinValue(1).setMaxValue(500).setRequired(false));
 
 slashCommands.push(pullCmd.toJSON());
 
 client.once('ready', async () => {
-    console.log(`ðŸ¤– Bot encendido como: ${client.user.tag}`);
+    console.log(`🤖 Bot encendido como: ${client.user.tag}`);
     await registrarActividadSistema('system', 'success', `Cliente Discord conectado como ${client.user.tag}`, `Servidores activos: ${client.guilds.cache.size}`);
     const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
     try {
         await rest.put(Routes.applicationCommands(client.user.id), { body: slashCommands });
-        for (const [guildId] of client.guilds.cache) {
-            await rest.put(Routes.applicationGuildCommands(client.user.id, guildId), { body: slashCommands }).catch(() => {});
-        }
-        console.log('âœ… Comandos Slash sincronizados al instante en todos los servidores.');
+        console.log('✅ Comandos Slash sincronizados al instante en todos los servidores.');
     } catch (error) {
         console.error(error);
     }
 });
 
 client.on('guildCreate', async (guild) => {
-    await registrarActividadSistema('guild_connect', 'success', `Nuevo servidor conectado: ${guild.name}`, `ID: ${guild.id} â€¢ Miembros: ${guild.memberCount}`);
+    await registrarActividadSistema('guild_connect', 'success', `Nuevo servidor conectado: ${guild.name}`, `ID: ${guild.id} • Miembros: ${guild.memberCount}`);
 });
 
 client.on('guildDelete', async (guild) => {
@@ -70,7 +67,7 @@ async function procesarComandoAutorizado(interaction) {
     if (interaction.commandName === 'restore_pull') {
         if (getRestoreState().restoreEnCurso) {
             return await interaction.reply({
-                content: `â³ Ya hay una transferencia activa (${getRestoreState().progresoRestore.procesados}/${getRestoreState().progresoRestore.total}).`,
+                content: `⏳ Ya hay una transferencia activa (${getRestoreState().progresoRestore.procesados}/${getRestoreState().progresoRestore.total}).`,
                 flags: [MessageFlags.Ephemeral]
             });
         }
@@ -80,19 +77,19 @@ async function procesarComandoAutorizado(interaction) {
 
         if (totalEnDb === 0) {
             return await interaction.reply({
-                content: 'âŒ TodavÃ­a no hay usuarios registrados en MongoDB.',
+                content: '❌ Todavía no hay usuarios registrados en MongoDB.',
                 flags: [MessageFlags.Ephemeral]
             });
         }
 
         await interaction.reply({
-            content: `ðŸš€ **Iniciando Restore de hasta ${cantidad} miembros** en **${interaction.guild.name}**.\nModo Anti-Bloqueo activo (1.35s por usuario).`,
+            content: `🚀 **Iniciando Restore de hasta ${cantidad} miembros** en **${interaction.guild.name}**.\nModo Anti-Bloqueo activo (1.35s por usuario).`,
             flags: [MessageFlags.Ephemeral]
         });
 
         transferirMiembrosSeguro(interaction.guild.id, cantidad, interaction.user.username).then(async (res) => {
             await interaction.followUp({
-                content: `âœ… **Restore Completado (${res.operationId}):**\nâ€¢ **Unidos:** ${res.unidos}\nâ€¢ **Ya estaban:** ${res.yaEstaban}\nâ€¢ **Fallidos:** ${res.fallidos}`,
+                content: `✅ **Restore Completado (${res.operationId}):**\n• **Unidos:** ${res.unidos}\n• **Ya estaban:** ${res.yaEstaban}\n• **Fallidos:** ${res.fallidos}`,
                 flags: [MessageFlags.Ephemeral]
             }).catch(() => {});
         });
@@ -107,9 +104,9 @@ async function procesarComandoAutorizado(interaction) {
     } catch (error) {
         console.error(error);
         if (interaction.replied || interaction.deferred) {
-            await interaction.followUp({ content: 'âŒ Hubo un error al ejecutar este comando.', flags: [MessageFlags.Ephemeral] });
+            await interaction.followUp({ content: '❌ Hubo un error al ejecutar este comando.', flags: [MessageFlags.Ephemeral] });
         } else {
-            await interaction.reply({ content: 'âŒ Hubo un error al ejecutar este comando.', flags: [MessageFlags.Ephemeral] });
+            await interaction.reply({ content: '❌ Hubo un error al ejecutar este comando.', flags: [MessageFlags.Ephemeral] });
         }
     }
 }
@@ -122,7 +119,7 @@ client.on('interactionCreate', async interaction => {
         if (pinEscrito !== CODIGO_SECRETO) {
             await registrarActividadSistema('auth', 'warning', `Intento fallido de PIN en comando /${cmdName}`, `Usuario: ${interaction.user.tag}`);
             return await interaction.reply({
-                content: 'âŒ **CÃ³digo de seguridad personal incorrecto.** OperaciÃ³n cancelada.',
+                content: '❌ **Código de seguridad personal incorrecto.** Operación cancelada.',
                 flags: [MessageFlags.Ephemeral]
             });
         }
@@ -136,7 +133,7 @@ client.on('interactionCreate', async interaction => {
     const esOwner = !OWNER_ID || interaction.user.id === OWNER_ID || (interaction.guild && interaction.guild.ownerId === interaction.user.id);
     if (!esOwner) {
         return await interaction.reply({
-            content: `ðŸ›‘ **Acceso Bloqueado:** Tu ID (\`${interaction.user.id}\`) no estÃ¡ autorizada como propietario de este bot.`,
+            content: `🛑 **Acceso Bloqueado:** Tu ID (\`${interaction.user.id}\`) no está autorizada como propietario de este bot.`,
             flags: [MessageFlags.Ephemeral]
         });
     }
@@ -146,11 +143,11 @@ client.on('interactionCreate', async interaction => {
     if (!codigoIngresado) {
         const modal = new ModalBuilder()
             .setCustomId(`pin_modal_${interaction.commandName}`)
-            .setTitle('ðŸ” VerificaciÃ³n de Seguridad Kyven');
+            .setTitle('🔐 Verificación de Seguridad Kyven');
 
         const inputPin = new TextInputBuilder()
             .setCustomId('pin_input')
-            .setLabel('Ingresa tu cÃ³digo de seguridad personal')
+            .setLabel('Ingresa tu código de seguridad personal')
             .setPlaceholder('Escribe tu BACKUP_PIN para ejecutar /' + interaction.commandName)
             .setStyle(TextInputStyle.Short)
             .setRequired(true);
@@ -161,7 +158,7 @@ client.on('interactionCreate', async interaction => {
 
     if (codigoIngresado.trim() !== CODIGO_SECRETO) {
         return await interaction.reply({
-            content: 'ðŸ›‘ **CÃ³digo Incorrecto:** El cÃ³digo de seguridad personal ingresado no es vÃ¡lido.',
+            content: '🛑 **Código Incorrecto:** El código de seguridad personal ingresado no es válido.',
             flags: [MessageFlags.Ephemeral]
         });
     }
