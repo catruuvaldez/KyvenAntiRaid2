@@ -1357,6 +1357,10 @@ app.get('/dashboard', (req, res) => {
                                     <span>Settings</span>
                                 </span>
                             </button>
+                            <button class="nav-item" data-module="commands" onclick="switchModule('commands')">
+                                <span class="nav-item-left"><span>⌘</span><span>Comandos</span></span>
+                                <span class="nav-badge" id="stagedCountBadge" style="display:none;">0</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1979,6 +1983,24 @@ app.get('/dashboard', (req, res) => {
                         </div>
                     </div>
                 </section>
+                <section id="view-commands" class="module-view">
+                    <div class="section-card" style="margin-bottom:14px;">
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                            <input id="commandSearch" class="input-pro" placeholder="Buscar archivo…" oninput="renderCommandFiles()" style="max-width:260px;">
+                            <select id="commandCategory" class="select-pro" onchange="renderCommandFiles()"><option value="">Todas las categorías</option></select>
+                            <button class="btn-secondary" onclick="createStagedCommand()">+ Crear Comando</button>
+                            <button class="btn-secondary" onclick="duplicateStagedCommand()">Duplicar</button>
+                            <button class="btn-secondary" onclick="renameStagedCommand()">Renombrar</button>
+                            <button class="btn-secondary" onclick="deleteStagedCommand()">Eliminar</button>
+                            <button class="btn-primary" onclick="saveStagedCommand()">Guardar en Borrador</button>
+                            <button class="btn-primary" onclick="openCommandReview()">Revisar y Aplicar Cambios (<span id="stagedCount">0</span>)</button>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:minmax(210px,280px) 1fr;gap:14px;min-height:560px;">
+                        <div class="section-card" style="overflow:auto;"><div id="commandFileList" style="display:flex;flex-direction:column;gap:5px;"></div></div>
+                        <div class="section-card" style="padding:0;overflow:hidden;"><div id="commandEditor" style="height:560px;width:100%;background:#1e1e1e;"></div></div>
+                    </div>
+                </section>
             </main>
         </div>
     </div>
@@ -2122,10 +2144,16 @@ app.get('/dashboard', (req, res) => {
     </div>
 
     <div class="toast-container" id="toastContainer"></div>
+    <div class="modal-overlay" id="commandReviewModal"><div class="modal-box" style="width:min(900px,96vw);max-height:85vh;overflow:auto;background:#110e1c;border:1px solid rgba(168,85,247,.4);">
+        <h3 style="margin-bottom:12px;">Revisión de cambios</h3><div id="commandDiffList" style="max-height:55vh;overflow:auto;margin-bottom:16px;"></div>
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;"><button class="btn-secondary" onclick="discardStagedCommands()">🗑️ Deshacer Todos los Cambios</button><div style="display:flex;gap:8px;"><button class="btn-secondary" onclick="closeCommandReview()">Seguir editando</button><button class="btn-primary" onclick="applyStagedCommands()">🚀 Aplicar Cambios y Actualizar Bot</button></div></div>
+    </div></div>
+    <div id="rebuildOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(4,3,9,.96);align-items:center;justify-content:center;text-align:center;"><div><div class="spinner" style="margin:0 auto 22px;"></div><h2 id="rebuildMessage">Sincronizando y Reiniciando Servidor...</h2><button id="rebuildLogin" class="btn-primary" style="display:none;margin:20px auto;" onclick="location.href='/dashboard'">Volver al Login</button></div></div>
 
     <!-- ==========================================================
          6. LÓGICA FRONTEND SPA COMPLETA
          ========================================================== -->
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
     <script>
         let sessionToken = sessionStorage.getItem('kyven_session') || '';
         let moduloActual = 'overview';
@@ -2135,6 +2163,14 @@ app.get('/dashboard', (req, res) => {
         let pollTimer = null;
         let ultimoTotalUsuarios = null;
         let ultimoEstadoRestoreActivo = false;
+        const stagedCommandActions = new Map();
+        const originalCommandCodes = new Map();
+        let commandFiles = [];
+        let selectedCommandPath = '';
+        let commandEditorInstance = null;
+        let commandEditorLoading = false;
+        let pendingModuleNavigation = '';
+        let commandBootState = null;
 
         // Paginación independiente
         let paginaMembers = 1;
@@ -2225,11 +2261,13 @@ app.get('/dashboard', (req, res) => {
             members: ['Verified Members — Directorio de Miembros', 'Base de datos OAuth2 e inspección individual de perfiles'],
             servers: ['Connected Servers — Servidores Conectados', 'Administración de servidores de Discord vinculados al bot'],
             security: ['Security Center — Centro de Seguridad', 'Supervisión de sesiones, protección Anti-Rate Limit y accesos'],
-            settings: ['Settings — Configuración', 'Preferencias del panel administrativo y diagnóstico de red']
+            settings: ['Settings — Configuración', 'Preferencias del panel administrativo y diagnóstico de red'],
+            commands: ['Comandos — Editor de archivos', 'Edición en borrador y aplicación atómica de cambios']
         };
 
-        function switchModule(modKey) {
+        function switchModule(modKey, bypassDraft = false) {
             if (!titulosModulo[modKey]) return;
+            if (!bypassDraft && moduloActual === 'commands' && modKey !== 'commands' && window.CommandEditor?.hasChanges()) { window.CommandEditor.requestLeave(modKey); return; }
             moduloActual = modKey;
 
             document.querySelectorAll('.nav-item').forEach(btn => {
@@ -2249,6 +2287,7 @@ app.get('/dashboard', (req, res) => {
                 titulosModulo[modKey][1] + ' • Última sincronización: <span id="lastSyncLabel">' + syncTime + '</span>';
 
             cerrarDrawers();
+            if (modKey === 'commands') window.CommandEditor?.open();
         }
 
         function mostrarToast(msg, force = false) {
@@ -2986,7 +3025,8 @@ app.get('/dashboard', (req, res) => {
             mostrarToast('Datos sincronizados con MongoDB Atlas', true);
         }
 
-        function cerrarSesion() {
+        async function cerrarSesion() {
+            try { await fetch('/api/dashboard-logout', { method: 'POST', credentials: 'same-origin' }); } catch (_) {}
             sessionStorage.removeItem('kyven_session');
             location.reload();
         }
@@ -3061,6 +3101,7 @@ app.get('/dashboard', (req, res) => {
 
         if (sessionToken) cargarDashboardData(false);
     </script>
+    <script src="/dashboard/server/command-editor.js"></script>
 </body>
 </html>`);
 });
