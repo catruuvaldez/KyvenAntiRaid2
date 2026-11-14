@@ -1357,10 +1357,7 @@ app.get('/dashboard', (req, res) => {
                                     <span>Settings</span>
                                 </span>
                             </button>
-                            <button class="nav-item" data-module="commands" onclick="switchModule('commands')">
-                                <span class="nav-item-left"><span>⌘</span><span>Comandos</span></span>
-                                <span class="nav-badge" id="stagedCountBadge" style="display:none;">0</span>
-                            </button>
+                            <button class="nav-item" data-module="commands" onclick="switchModule('commands')"><span class="nav-item-left"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg><span>Comandos</span></span><span class="nav-badge" id="stagedCountBadge" style="display:none;">0</span></button>
                         </div>
                     </div>
                 </div>
@@ -1984,21 +1981,35 @@ app.get('/dashboard', (req, res) => {
                     </div>
                 </section>
                 <section id="view-commands" class="module-view">
-                    <div class="section-card" style="margin-bottom:14px;">
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                            <input id="commandSearch" class="input-pro" placeholder="Buscar archivo…" oninput="renderCommandFiles()" style="max-width:260px;">
-                            <select id="commandCategory" class="select-pro" onchange="renderCommandFiles()"><option value="">Todas las categorías</option></select>
-                            <button class="btn-secondary" onclick="createStagedCommand()">+ Crear Comando</button>
-                            <button class="btn-secondary" onclick="duplicateStagedCommand()">Duplicar</button>
-                            <button class="btn-secondary" onclick="renameStagedCommand()">Renombrar</button>
-                            <button class="btn-secondary" onclick="deleteStagedCommand()">Eliminar</button>
-                            <button class="btn-primary" onclick="saveStagedCommand()">Guardar en Borrador</button>
-                            <button class="btn-primary" onclick="openCommandReview()">Revisar y Aplicar Cambios (<span id="stagedCount">0</span>)</button>
+                    <div class="section-card" style="margin-bottom:14px;padding:16px;border-radius:12px;background:rgba(16,13,27,.82);border:1px solid rgba(255,255,255,.07);">
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <input id="commandSearch" placeholder="&#128269; Buscar comando..." style="background:#07050e;border:1px solid rgba(255,255,255,.09);border-radius:10px;color:#f8fafc;padding:9px 12px;width:260px;">
+                                <select id="commandCategory" style="background:#07050e;border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:9px 12px;color:#f8fafc;"><option value="">Todas las categorias</option></select>
+                            </div>
+                            <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;">
+                                <button onclick="CommandEditor.create()" style="background:#9333ea;color:#fff;padding:8px 14px;border:0;border-radius:10px;font-size:12px;font-weight:600;">+ Crear Comando</button>
+                                <button onclick="CommandEditor.duplicate()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#e2e8f0;padding:8px 14px;border-radius:10px;font-size:12px;">Duplicar</button>
+                                <button onclick="CommandEditor.rename()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#e2e8f0;padding:8px 14px;border-radius:10px;font-size:12px;">Renombrar</button>
+                                <button onclick="CommandEditor.remove()" style="background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.35);color:#fca5a5;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:600;">Eliminar</button>
+                            </div>
                         </div>
                     </div>
                     <div style="display:grid;grid-template-columns:minmax(210px,280px) 1fr;gap:14px;min-height:560px;">
-                        <div class="section-card" style="overflow:auto;"><div id="commandFileList" style="display:flex;flex-direction:column;gap:5px;"></div></div>
-                        <div class="section-card" style="padding:0;overflow:hidden;"><div id="commandEditor" style="height:560px;width:100%;background:#1e1e1e;"></div></div>
+                        <div class="section-card" style="overflow:auto;padding:14px;">
+                            <div style="font-size:12px;font-weight:700;color:#f8fafc;padding:2px 2px 10px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:8px;">Comandos Detectados (<span id="detectedCommandCount">0</span>)</div>
+                            <div id="commandFileList" style="display:flex;flex-direction:column;gap:4px;"></div>
+                        </div>
+                        <div class="section-card" style="padding:0;overflow:hidden;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(0,0,0,.45);border-bottom:1px solid rgba(255,255,255,.08);">
+                                <span id="commandSelectedFilename" style="font-family:'JetBrains Mono',monospace;color:#d8b4fe;font-size:12px;font-weight:600;">Selecciona un comando</span>
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <button onclick="CommandEditor.save()" style="padding:6px 14px;border-radius:10px;background:rgba(147,51,234,.28);border:1px solid rgba(168,85,247,.4);color:#e9d5ff;font-size:12px;font-weight:600;">&#128204; Guardar en Borrador</button>
+                                    <button onclick="CommandEditor.review()" style="padding:6px 16px;border-radius:10px;background:#059669;color:#fff;font-size:12px;font-weight:700;border:none;">&#128190; Revisar y Subir a Bot / GitHub (<span id="stagedCount">0</span>)</button>
+                                </div>
+                            </div>
+                            <div id="commandEditor" style="height:520px;width:100%;background:#1e1e1e;"></div>
+                        </div>
                     </div>
                 </section>
             </main>

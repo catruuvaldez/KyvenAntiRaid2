@@ -26,9 +26,12 @@
     function render() {
         const wrap=document.getElementById('commandFileList'); if(!wrap)return;
         const q=(document.getElementById('commandSearch')?.value||'').toLowerCase(), c=document.getElementById('commandCategory')?.value||'';
+        const detected=document.getElementById('detectedCommandCount'); if(detected)detected.textContent=files.length;
         wrap.innerHTML=files.filter(f=>f.path.toLowerCase().includes(q)&&(!c||c===f.category)).map(f=>{
             const dirty=Boolean(getAction(f.path));
-            return `<button class="btn-secondary" style="width:100%;text-align:left;margin:2px 0;${selected===f.path?'border-color:#a855f7;':''}" onclick="CommandEditor.select('${esc(f.path)}')">${esc(f.path)}${dirty?'<small style="display:block;color:#d8b4fe">Modificado en Borrador</small>':''}</button>`;
+            const active=selected===f.path;
+            const categoryLabel=f.category==='commands'?'Comandos':f.category;
+            return `<button style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;margin:1px 0;padding:8px 12px;border-radius:8px;background:${active?'rgba(147,51,234,.25)':'transparent'};border:1px solid ${active?'rgba(168,85,247,.4)':'transparent'};color:${active?'#fff':'#e2e8f0'};cursor:pointer" onclick="CommandEditor.select('${esc(f.path)}')"><span>${esc(f.filename)}</span><span style="font-size:10px;color:#c084fc;white-space:nowrap">${esc(categoryLabel)}${dirty?' · Modificado':''}</span></button>`;
         }).join('')||'<div style="padding:8px;color:var(--text-muted)">Sin archivos</div>';
     }
     function startEditor() {
@@ -41,7 +44,7 @@
         },()=>{loading=false;notify('No se pudo cargar Monaco Editor');});
     }
     async function select(file) {
-        selected=file; let code=codeFor(file);
+        selected=file; const label=document.getElementById('commandSelectedFilename');if(label)label.textContent=file.split('/').pop(); let code=codeFor(file);
         if(code===null&&!getAction(file)) { const res=await post('/api/command-read',{path:file}), data=await res.json(); if(!res.ok)return notify(data.error||'No se pudo leer'); code=data.code; originalCommandCodes.set(file,code); }
         render();startEditor();if(editor)editor.setValue(code||'');
     }
@@ -53,30 +56,30 @@
     }
     function pathFrom(value, dir='commands') {
         let p=String(value||'').trim().replace(/\\/g,'/');if(!p.includes('/'))p=dir+'/'+p;if(!p.endsWith('.js'))p+='.js';
-        return /^(commands|interactions|security|systems|dashboard\/(interactions|security|systems))\/[A-Za-z0-9._/-]+\.js$/.test(p)&&!p.split('/').includes('..')?p:null;
+        return /^commands\/[A-Za-z0-9._/-]+\.js$/.test(p)&&!p.split('/').includes('..')?p:null;
     }
     function ask(title, initial='') { return new Promise(resolve=>{const modal=document.createElement('div');modal.className='modal-overlay';modal.style.display='flex';modal.innerHTML=`<div class="modal-box" style="background:#110e1c;border:1px solid rgba(168,85,247,.4)"><h3 style="margin-bottom:12px">${esc(title)}</h3><input id="cmdEditInput" class="input-pro" style="width:100%;margin-bottom:14px" value="${esc(initial)}"><div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn-secondary" data-no>Cancelar</button><button class="btn-primary" data-yes>Continuar</button></div></div>`;document.body.appendChild(modal);const done=v=>{modal.remove();resolve(v);};modal.querySelector('[data-no]').onclick=()=>done(null);modal.querySelector('[data-yes]').onclick=()=>done(modal.querySelector('input').value.trim());modal.querySelector('input').onkeydown=e=>{if(e.key==='Enter')done(e.target.value.trim());if(e.key==='Escape')done(null);};modal.querySelector('input').focus();}); }
     async function create() {
         const p=pathFrom(await ask('Nombre/ruta del nuevo comando','commands/nuevo.js'));if(!p)return notify('Ruta .js no válida');if(files.some(f=>f.path===p)||getAction(p))return notify('Ese archivo ya existe');
         const code="'use strict';\n\nmodule.exports = {\n    data: { toJSON: () => ({ name: 'nuevo', description: 'Nuevo comando' }) },\n    async execute(interaction) {\n        // Implementa el comando aquí\n    }\n};\n";
-        stagedCommandActions.set(p,{type:'create',filename:p,oldFilename:null,oldCode:'',code});files.push({path:p,filename:p.split('/').pop(),category:p.split('/')[0]});selected=p;count();startEditor();if(editor)editor.setValue(code);
+        stagedCommandActions.set(p,{type:'create',filename:p,oldFilename:null,oldCode:'',code});files.push({path:p,filename:p.split('/').pop(),category:'commands'});selected=p;document.getElementById('commandSelectedFilename').textContent=p.split('/').pop();count();startEditor();if(editor)editor.setValue(code);
     }
     async function duplicate() {
         if(!selected)return notify('Selecciona un archivo primero');const code=codeFor(selected);if(code===null)return;
         const p=pathFrom(await ask('Ruta de la copia',selected.replace(/\.js$/,'.copy.js')));if(!p)return;if(files.some(f=>f.path===p)||getAction(p))return notify('Ese archivo ya existe');
-        stagedCommandActions.set(p,{type:'create',filename:p,oldFilename:null,oldCode:'',code});files.push({path:p,filename:p.split('/').pop(),category:p.split('/')[0]});count();
+        stagedCommandActions.set(p,{type:'create',filename:p,oldFilename:null,oldCode:'',code});files.push({path:p,filename:p.split('/').pop(),category:'commands'});count();
     }
     async function rename() {
         if(!selected)return notify('Selecciona un archivo primero');const oldPath=selected, dir=oldPath.split('/')[0], p=pathFrom(await ask('Nueva ruta',oldPath),dir);if(!p||p===oldPath)return;if(files.some(f=>f.path===p)||getAction(p))return notify('Ese archivo ya existe');
         let code=codeFor(oldPath), prior=getAction(oldPath), sourcePath=oldPath, base=originalCommandCodes.get(oldPath)||code;
         if(prior?.type==='create'){stagedCommandActions.delete(prior.filename);prior.filename=p;stagedCommandActions.set(p,prior);}
         else {if(prior?.type==='rename'){sourcePath=prior.oldFilename;base=prior.oldCode;code=prior.code;stagedCommandActions.delete(oldPath);}const oldName=sourcePath.split('/').pop().replace(/\.js$/,''), newName=p.split('/').pop().replace(/\.js$/,'');const escaped=oldName.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');const renamed=code.replace(new RegExp("(\\.setName\\(\\s*['\\\"])"+escaped+"(['\\\"]\\s*\\))",'g'),'$1'+newName+'$2');stagedCommandActions.set(sourcePath,{type:'rename',filename:p,oldFilename:sourcePath,oldCode:base,code:renamed});}
-        files.push({path:p,filename:p.split('/').pop(),category:p.split('/')[0]});selected=p;count();startEditor();if(editor)editor.setValue(codeFor(p)||'');
+        files.push({path:p,filename:p.split('/').pop(),category:'commands'});selected=p;document.getElementById('commandSelectedFilename').textContent=p.split('/').pop();count();startEditor();if(editor)editor.setValue(codeFor(p)||'');
     }
     function remove() {
         if(!selected)return notify('Selecciona un archivo primero');const a=getAction(selected);
         if(a?.type==='create'){stagedCommandActions.delete(a.filename);files=files.filter(f=>f.path!==a.filename);}else if(a?.type==='rename'){stagedCommandActions.delete(a.oldFilename);stagedCommandActions.set(a.oldFilename,{type:'delete',filename:a.oldFilename,oldFilename:a.oldFilename,oldCode:a.oldCode,code:''});}else stagedCommandActions.set(selected,{type:'delete',filename:selected,oldFilename:selected,oldCode:originalCommandCodes.get(selected)||a?.oldCode||'',code:''});
-        selected='';if(editor)editor.setValue('');count();
+        selected='';document.getElementById('commandSelectedFilename').textContent='Selecciona un comando';if(editor)editor.setValue('');count();
     }
     function review() {
         if(!stagedCommandActions.size)return notify('No hay cambios pendientes');const wrap=document.getElementById('commandDiffList');wrap.innerHTML='';
@@ -91,7 +94,7 @@
     }
     function leave(module) { pendingLeave=module;review(); }
     function closeReview(){document.getElementById('commandReviewModal').style.display='none';}
-    async function discard(){stagedCommandActions.clear();selected='';if(editor)editor.setValue('');count();closeReview();await list();if(pendingLeave){const next=pendingLeave;pendingLeave='';window.switchModule(next,true);}}
+    async function discard(){stagedCommandActions.clear();selected='';document.getElementById('commandSelectedFilename').textContent='Selecciona un comando';if(editor)editor.setValue('');count();closeReview();await list();if(pendingLeave){const next=pendingLeave;pendingLeave='';window.switchModule(next,true);}}
     async function apply() {
         const actions=[...stagedCommandActions.values()];if(!actions.length)return;const overlay=document.getElementById('rebuildOverlay');overlay.style.display='flex';closeReview();
         try{const ping=await fetch('/api/server-ping');boot=await ping.json();}catch(_){}
@@ -104,8 +107,6 @@
     window.CommandEditor={open(){startEditor();if(!files.length)list();},hasChanges(){return stagedCommandActions.size>0;},requestLeave:leave,select,filter:render,save(){if(editor)updateDraft();notify('Cambios guardados en el borrador');},create,duplicate,rename,remove,review,closeReview,discard,apply};
     window.discardStagedCommands=discard;window.closeCommandReview=closeReview;window.applyStagedCommands=apply;
     window.addEventListener('DOMContentLoaded',()=>{
-        document.getElementById('commandSearch').addEventListener('input',render);document.getElementById('commandCategory').addEventListener('change',render);
-        document.querySelector('#view-commands .section-card > div').innerHTML=`<input id="commandSearch" class="input-pro" placeholder="Buscar archivo…" style="max-width:220px"><select id="commandCategory" class="select-pro"><option value="">Todas las categorías</option></select><button class="btn-secondary" onclick="CommandEditor.create()">+ Crear Comando</button><button class="btn-secondary" onclick="CommandEditor.duplicate()">Duplicar</button><button class="btn-secondary" onclick="CommandEditor.rename()">Renombrar</button><button class="btn-secondary" onclick="CommandEditor.remove()">Eliminar</button><button class="btn-primary" onclick="CommandEditor.save()">Guardar en Borrador</button><button class="btn-primary" onclick="CommandEditor.review()">Revisar y Aplicar Cambios (<span id="stagedCount">0</span>)</button>`;
         document.getElementById('commandSearch').addEventListener('input',render);document.getElementById('commandCategory').addEventListener('change',render);
         document.querySelector('#commandReviewModal [onclick="discardStagedCommands()"]')?.addEventListener('click',discard);
         document.querySelector('#commandReviewModal [onclick="closeCommandReview()"]')?.addEventListener('click',closeReview);

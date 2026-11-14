@@ -5,8 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 function registerApiRoutes(app, { rootDir, ADMIN_USER, CODIGO_SECRETO, mongoose, client, OAuthToken, SystemActivity, RestoreOperation, registrarActividadSistema, sincronizarCache, verificarRateLimitIP, registrarFalloIP, validarSesionToken, sesionesActivas, intentosFallidos, localizarArchivoKyvenIcon, renderErrorPage, getRestoreState, transferirMiembrosSeguro }) {
-const commandRoots = ['commands', 'interactions', 'security', 'systems', 'dashboard/interactions', 'dashboard/security', 'dashboard/systems'];
-const commandRootSet = new Set(commandRoots);
+const commandRoots = ['commands'];
 const bootTimestamp = Date.now();
 function adminSession(req) {
     const cookies = Object.fromEntries(String(req.headers.cookie || '').split(';').map(s => s.trim()).filter(Boolean).map(s => { const i=s.indexOf('='); try { return [s.slice(0,i), decodeURIComponent(s.slice(i+1))]; } catch (_) { return ['', '']; } }));
@@ -16,7 +15,7 @@ function safeCommandPath(relativePath) {
     if (typeof relativePath !== 'string' || relativePath.includes('\\') || path.isAbsolute(relativePath)) return null;
     const normalized = path.posix.normalize(relativePath);
     if (normalized !== relativePath || normalized.split('/').some(p => !p || p === '.' || p === '..') || !normalized.endsWith('.js')) return null;
-    if (!commandRootSet.has(normalized.split('/')[0]) && !commandRoots.some(r => normalized.startsWith(r + '/'))) return null;
+    if (!normalized.startsWith('commands/')) return null;
     const full = path.resolve(rootDir, ...normalized.split('/'));
     const rel = path.relative(path.resolve(rootDir), full);
     if (rel.startsWith('..') || path.isAbsolute(rel)) return null;
