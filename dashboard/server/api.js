@@ -493,6 +493,7 @@ app.post('/api/commands-batch-commit', async (req, res) => {
         if (!response.ok) throw new Error(data?.message || `GitHub respondió ${response.status}`);
         return data;
     };
+    let publishedCommit = null;
     try {
         const repository = await gh(`/repos/${repo}`);
         const branch = (process.env.GITHUB_BRANCH || repository.default_branch || '').trim();
@@ -507,6 +508,7 @@ app.post('/api/commands-batch-commit', async (req, res) => {
         const newTree = await gh(`/repos/${repo}/git/trees`, 'POST', { base_tree: parent.tree.sha, tree: [...tree.values()] });
         const commit = await gh(`/repos/${repo}/git/commits`, 'POST', { message: `Apply ${validated.length} command editor change${validated.length === 1 ? '' : 's'}`, tree: newTree.sha, parents: [ref.object.sha] });
         await gh(`/repos/${repo}/git/refs/heads/${encodeURIComponent(branch).replace(/%2F/g, '/')}`, 'PATCH', { sha: commit.sha, force: false });
+        publishedCommit = commit.sha;
         for (const action of validated) {
             if (action.type === 'delete' || action.type === 'rename') fs.unlinkSync(action.source);
             if (action.type !== 'delete') { fs.mkdirSync(path.dirname(action.target), { recursive: true }); fs.writeFileSync(action.target, action.code, 'utf8'); }
@@ -528,6 +530,7 @@ app.post('/api/commands-batch-commit', async (req, res) => {
         res.json({ ok: true, commit: commit.sha, files: validated.length });
     } catch (error) {
         console.error('Error aplicando lote de comandos:', error);
+        if (publishedCommit) return res.json({ ok: true, commit: publishedCommit, files: validated.length, warning: `GitHub publicó el commit, pero hubo un problema al aplicar localmente: ${error.message}` });
         res.status(502).json({ error: `No se pudo completar la sincronización: ${error.message}` });
     }
 });

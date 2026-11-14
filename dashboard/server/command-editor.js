@@ -75,7 +75,7 @@
     }
     function remove() {
         if(!selected)return notify('Selecciona un archivo primero');const a=getAction(selected);
-        if(a?.type==='create')stagedCommandActions.delete(a.filename);else if(a?.type==='rename'){stagedCommandActions.delete(a.oldFilename);stagedCommandActions.set(a.oldFilename,{type:'delete',filename:a.oldFilename,oldFilename:a.oldFilename,oldCode:a.oldCode,code:''});}else stagedCommandActions.set(selected,{type:'delete',filename:selected,oldFilename:selected,oldCode:originalCommandCodes.get(selected)||a?.oldCode||'',code:''});
+        if(a?.type==='create'){stagedCommandActions.delete(a.filename);files=files.filter(f=>f.path!==a.filename);}else if(a?.type==='rename'){stagedCommandActions.delete(a.oldFilename);stagedCommandActions.set(a.oldFilename,{type:'delete',filename:a.oldFilename,oldFilename:a.oldFilename,oldCode:a.oldCode,code:''});}else stagedCommandActions.set(selected,{type:'delete',filename:selected,oldFilename:selected,oldCode:originalCommandCodes.get(selected)||a?.oldCode||'',code:''});
         selected='';if(editor)editor.setValue('');count();
     }
     function review() {
@@ -91,14 +91,14 @@
     }
     function leave(module) { pendingLeave=module;review(); }
     function closeReview(){document.getElementById('commandReviewModal').style.display='none';}
-    function discard(){stagedCommandActions.clear();selected='';if(editor)editor.setValue('');count();closeReview();if(pendingLeave){const next=pendingLeave;pendingLeave='';window.switchModule(next,true);}}
+    async function discard(){stagedCommandActions.clear();selected='';if(editor)editor.setValue('');count();closeReview();await list();if(pendingLeave){const next=pendingLeave;pendingLeave='';window.switchModule(next,true);}}
     async function apply() {
         const actions=[...stagedCommandActions.values()];if(!actions.length)return;const overlay=document.getElementById('rebuildOverlay');overlay.style.display='flex';closeReview();
         try{const ping=await fetch('/api/server-ping');boot=await ping.json();}catch(_){}
         try{const res=await post('/api/commands-batch-commit',{actions}),data=await res.json();if(!res.ok){overlay.style.display='none';return notify(data.error||'No se pudo aplicar el lote');}
             stagedCommandActions.clear();count();const start=Date.now();let restarted=false;
             while(Date.now()-start<300000){await new Promise(r=>setTimeout(r,2000));try{const r=await fetch('/api/server-ping');if(r.status===401){restarted=true;break;}const p=await r.json();if(boot&&(p.bootTimestamp!==boot.bootTimestamp||p.uptime<boot.uptime)){restarted=true;break;}}catch(_){restarted=true;}if(restarted)break;}
-            document.getElementById('rebuildMessage').textContent='🔒 Servidor Reiniciado — Sesión Vencida por Rebuild Automático';document.getElementById('rebuildLogin').style.display='inline-flex';
+            document.getElementById('rebuildMessage').textContent=restarted?'🔒 Servidor Reiniciado — Sesión Vencida por Rebuild Automático':'Commit publicado; el servidor aún no informó un reinicio.';document.getElementById('rebuildLogin').style.display='inline-flex';
         }catch(_){overlay.style.display='none';notify('Error de conexión al aplicar cambios');}
     }
     window.CommandEditor={open(){startEditor();if(!files.length)list();},hasChanges(){return stagedCommandActions.size>0;},requestLeave:leave,select,filter:render,save(){if(editor)updateDraft();notify('Cambios guardados en el borrador');},create,duplicate,rename,remove,review,closeReview,discard,apply};
