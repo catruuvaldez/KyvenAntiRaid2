@@ -105,7 +105,7 @@ function pc2RenderTargets() {
     </button>`).join('');
     const previous = roles?.value;
     if (roles) {
-        roles.innerHTML = '<option value="">Seleccionar rol...</option>' + pcData.roles.filter(r=>r.id!==pcData.guild.id && !r.managed && r.position<pcData.bot.highestRolePosition)
+        roles.innerHTML = '<option value="">Seleccionar rol...</option>' + pcData.roles.filter(r=>r.id!==pcData.guild.id)
             .map(r=>`<option value="${r.id}">${pc2E(r.name)}</option>`).join('');
         if (previous && [...roles.options].some(o=>o.value===previous)) roles.value=previous;
     }

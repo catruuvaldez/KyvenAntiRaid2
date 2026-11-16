@@ -102,8 +102,10 @@ async function checkIdentity(guild, entry) {
         if (entry.id === guild.id) return;
         const role = guild.roles.cache.get(entry.id) || await guild.roles.fetch(entry.id).catch(() => null);
         if (!role) throw err(400, `El rol ${entry.id} no existe en el servidor.`);
-        if (role.managed) throw err(403, `No se pueden cambiar los permisos del rol administrado ${role.name}.`);
-        if (role.position >= guild.members.me.roles.highest.position) throw err(403, `El rol ${role.name} está por encima del bot.`);
+        // Channel permission overwrites are NOT edits to the guild role itself.
+        // Discord's role hierarchy and managed-role restrictions apply to role
+        // editing/assignment, not to channel-level permission overwrites.
+        // Keep hierarchy checks in api.js safeRole() for actual role changes.
     } else {
         const member = await guild.members.fetch(entry.id).catch(() => null);
         if (!member) throw err(400, `El usuario ${entry.id} no es miembro del servidor.`);
