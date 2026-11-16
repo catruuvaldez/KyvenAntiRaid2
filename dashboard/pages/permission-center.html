@@ -84,6 +84,10 @@
                     <div class="section-card pc2-workspace pc2-template-area">
                         <div class="pc2-heading"><div><h2>Plantillas y aplicación múltiple</h2>
                             <p>Reutiliza permisos en otros canales. Ningún cambio se aplica sin una vista previa y confirmación.</p></div></div>
+                        <div class="pc2-toolbar" style="margin:10px 0 14px;align-items:center;flex-wrap:wrap;">
+                            <button class="btn-secondary" onclick="pc2SaveRecoverySnapshot()">💾 Guardar perfil de recuperación</button>
+                            <span id="pc2RecoveryStatus" class="pc2-muted">Perfil sin consultar</span>
+                        </div>
                         <div class="pc2-template-controls">
                             <label class="pc2-label">Plantilla guardada
                                 <select class="select-pro" id="pc2TemplateSelect" onchange="pc2HideReview()"><option value="">Selecciona una plantilla</option></select>

@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const recovery = require('../dashboard/server/permission-center/recovery');
 
 // Variable para evitar que el comando se ejecute 2 veces al mismo tiempo y sature a Discord
 let configurandoActualmente = false;
@@ -11,6 +12,15 @@ module.exports = {
             option.setName('rol_usuarios')
                 .setDescription('El rol base a configurar (ej. Usuarios o Verificado)')
                 .setRequired(true))
+        .addStringOption(option => option.setName('servidor_origen')
+            .setDescription('ID del servidor que contiene el perfil guardado en Permission Center')
+            .setRequired(false))
+        .addBooleanOption(option => option.setName('confirmar_traslado')
+            .setDescription('Confirmar explícitamente la aplicación a otro servidor')
+            .setRequired(false))
+        .addBooleanOption(option => option.setName('aplicar_permisos_roles')
+            .setDescription('También restaurar permisos globales de roles (opcional, protegido por jerarquía)')
+            .setRequired(false))
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
     
     async execute(interaction) {
@@ -116,6 +126,66 @@ module.exports = {
         try {
             await guild.roles.fetch();
             const channels = await guild.channels.fetch();
+            // Sync the web editor's latest *static* channel permission profile.
+            // In another server, never apply hard-coded IDs from the old guild.
+            const sourceGuildId = interaction.options.getString('servidor_origen')?.trim() || guild.id;
+            if (!/^\d{17,20}$/.test(sourceGuildId)) {
+                await interaction.editReply('❌ ID de servidor de origen inválido.');
+                return;
+            }
+            if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
+                await interaction.editReply('❌ Solo un administrador del servidor puede ejecutar este comando.');
+                return;
+            }
+            const me = guild.members.me || await guild.members.fetchMe();
+            if (!me.permissions.has(PermissionFlagsBits.ManageRoles) || !me.permissions.has(PermissionFlagsBits.ManageChannels)) {
+                await interaction.editReply('❌ El bot necesita ManageRoles y ManageChannels para configurar permisos de canal.');
+                return;
+            }
+            const saved = recovery.findProfile(sourceGuildId);
+            if (saved) {
+                const transfer = sourceGuildId !== guild.id;
+                const preview = transfer && interaction.options.getBoolean('confirmar_traslado') !== true;
+                const outcome = await recovery.applyProfileRestore(guild, saved, {
+                    preview,
+                    progress: async (done, total, applied) => {
+                        if (done % 8 === 0) await interaction.editReply(`⏳ Restaurando permisos... ${done}/${total} (${applied} actualizados).`).catch(() => {});
+                    }
+                });
+                const syncRoles = interaction.options.getBoolean('aplicar_permisos_roles') === true;
+                const rolesResult = syncRoles
+                    ? await recovery.applyRoleRestore(guild, saved, { preview }) : null;
+                let text = preview
+                    ? `🔎 **Vista previa del traslado desde ${saved.guildName} (${sourceGuildId})**\n` +
+                      `Canales localizados: ${outcome.planned}; con cambios: ${outcome.changed}.\n` +
+                      `Para aplicarlos repite el comando con **servidor_origen** y **confirmar_traslado: true**.`
+                    : `✅ Perfil de permisos aplicado desde **${saved.guildName}**.\n` +
+                      `Revisados: ${outcome.planned}; necesitaban cambios: ${outcome.changed}; actualizados: ${outcome.applied}.`;
+                if (outcome.skipped.length) text += `\n⚠️ Omitidos (${outcome.skipped.length}): ` + outcome.skipped.slice(0, 5).join(' · ');
+                if (outcome.warnings.length) text += `\nAvisos: ` + outcome.warnings.slice(0, 3).join(' · ');
+                if (outcome.errors?.length) text += `\n❌ Errores (${outcome.errors.length}): ` + outcome.errors.slice(0, 4).join(' · ');
+                if (rolesResult) {
+                    text += `\n🔑 Permisos globales de roles: ${rolesResult.planned} revisados, ${rolesResult.applied} actualizados`;
+                    if (rolesResult.preview) text += ' (solo vista previa)';
+                    if (rolesResult.skipped.length) text += `, ${rolesResult.skipped.length} omitidos`;
+                    if (rolesResult.errors.length) text += `; ${rolesResult.errors.length} errores`;
+                    text += '.';
+                }
+                if (!preview) text += '\n🔒 Los canales de tickets/carritos no se han modificado directamente.';
+                await interaction.editReply({ content: text.slice(0, 1950) });
+                return;
+            }
+            if (sourceGuildId !== guild.id) {
+                await interaction.editReply('❌ No se encontró el perfil del servidor origen. Guarda primero permisos desde Permission Center o genera un perfil en ese servidor.');
+                return;
+            }
+            // The legacy defaults depend on IDs that belong to the original server.
+            // Never run these defaults on a newly restored server with different IDs.
+            if (!guild.roles.cache.has(rolCompradorId) || !guild.channels.cache.has(categoriaCompradoresId)) {
+                await interaction.editReply('⚠️ No se encontró un perfil para este servidor y las IDs de la configuración original no coinciden. No hice cambios. Usa servidor_origen con la ID del servidor donde guardaste el perfil desde la web.');
+                return;
+            }
+            let protegidos = 0;
             let modificados = 0;
             let revisados = 0;
             const totalCanales = channels.size;
@@ -134,6 +204,15 @@ module.exports = {
             for (const [id, channel] of channels) {
                 if (!channel) continue;
                 revisados++;
+                // Ticket/cart bots own these channels. Do not touch their @everyone,
+                // staff-role or member overwrites, even when running legacy defaults.
+                if (recovery.isProtectedChannel(channel, guild) ||
+                    channel.permissionOverwrites?.cache?.some(ow => Number(ow.type) === 1)) {
+                    // Never reset channel-level member exceptions created by ticket,
+                    // cart or other bots even if their channel names are customized.
+                    protegidos++;
+                    continue;
+                }
 
                 // Actualiza el mensaje cada 8 canales para que sepas que avanza y nunca muera la interacción
                 if (revisados % 8 === 0) {
@@ -252,81 +331,8 @@ module.exports = {
                         continue;
                     }
 
-                    // 6. SISTEMA DE TICKETS
-                    let esTicketPrivado = false;
-                    let esCategoriaTicket = false;
-
-                    if (channel.type === 4) { 
-                        const nombreCat = channel.name.toLowerCase();
-                        if (channel.id === categoriaTicketsId || nombreCat.includes('ticket') || nombreCat.includes('soporte') || nombreCat.includes('compra') || nombreCat.includes('partner')) {
-                            esCategoriaTicket = true;
-                        }
-                    } else {
-                        if (channel.parent) {
-                            const nombreCategoria = channel.parent.name.toLowerCase();
-                            if (channel.parentId === categoriaTicketsId || nombreCategoria.includes('ticket') || nombreCategoria.includes('soporte') || nombreCategoria.includes('compra') || nombreCategoria.includes('partner')) {
-                                esTicketPrivado = true;
-                            }
-                        }
-                        const nombreCanal = channel.name.toLowerCase();
-                        if (nombreCanal.includes('ticket') || nombreCanal.includes('compra-') || nombreCanal.includes('soporte') || nombreCanal.includes('partner')) {
-                            esTicketPrivado = true;
-                        }
-                    }
-
-                    if (esCategoriaTicket) {
-                        const overwritesCatTickets = [
-                            { id: everyoneId, deny: [PermissionFlagsBits.ViewChannel] },
-                            ...ReglaBloquearAislado,
-                            ...rolesMiembros.map(r => ({
-                                id: r.id,
-                                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory],
-                                deny: [PermissionFlagsBits.SendMessages]
-                            }))
-                        ];
-                        if (await aplicarOverwritesRapido(channel, overwritesCatTickets)) modificados++;
-                        continue; 
-                    }
-
-                    const nombreLimpio = channel.name.toLowerCase();
-                    const tieneNumeros = /\d/.test(nombreLimpio);
-                    const esCanalPanelTicket = (
-                        nombreLimpio === 'ticket' || nombreLimpio === 'tickets' || nombreLimpio.includes('abrir') || 
-                        nombreLimpio.includes('crear') || nombreLimpio.includes('panel') ||
-                        (channel.parentId === categoriaTicketsId && !tieneNumeros && !nombreLimpio.includes('compra-') && !nombreLimpio.includes('soporte-') && !nombreLimpio.includes('partner-'))
-                    );
-
-                    if (esTicketPrivado && channel.type !== 4 && esCanalPanelTicket) {
-                        const overwritesPanelTicket = [
-                            { id: everyoneId, deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.CreateInstantInvite] },
-                            ...ReglaBloquearAislado,
-                            ...rolesMiembros.map(r => ({
-                                id: r.id,
-                                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory],
-                                deny: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.AddReactions]
-                            }))
-                        ];
-                        if (await aplicarOverwritesRapido(channel, overwritesPanelTicket)) modificados++;
-                        continue;
-                    }
-
-                    if (esTicketPrivado && channel.type !== 4 && !esCanalPanelTicket) {
-                        const overwritesTicketAbierto = [
-                            { id: everyoneId, deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] },
-                            ...ReglaBloquearAislado,
-                            ...rolesMiembros.filter(r => r.id !== rolVentasId).map(r => ({
-                                id: r.id,
-                                deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-                            })),
-                            ...(guild.roles.cache.has(rolVentasId) ? [{
-                                id: rolVentasId,
-                                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles]
-                            }] : [])
-                        ];
-                        // true = conserva al usuario individual que abrió el ticket
-                        if (await aplicarOverwritesRapido(channel, overwritesTicketAbierto, true)) modificados++;
-                        continue;
-                    }
+                    // 6. TICKETS / CARRITO: se excluyen ANTES de las reglas generales.
+                    // El otro bot administra los usuarios y roles en esas sesiones.
 
                     // 7. Canales de escritura (Feedback, Chat y NO HABLAR) - 1 sola llamada por canal en lugar de bucle
                     if (canalesPermitidosEscritura.includes(channel.id) || channel.parentId === categoriaChatId) {
@@ -368,8 +374,20 @@ module.exports = {
                 }
             }
 
-            await interaction.editReply({ 
-                content: `✅ ¡Permisos configurados con éxito! (${modificados} canales actualizados de ${totalCanales} revisados).` 
+            // Seed the recovery profile with the original rules on first use.
+            // Every subsequent confirmed web save refreshes this profile.
+            let backupStatus = '';
+            try {
+                await guild.channels.fetch();
+                const profile = recovery.captureProfile(guild);
+                backupStatus = `\n💾 Perfil de recuperación guardado (${profile.saved} canales).`;
+            } catch (e) {
+                backupStatus = `\n⚠️ No se pudo guardar el perfil para futuras restauraciones: ${e.message}`;
+                console.error('[configurar-permisos] No se pudo sincronizar perfil:', e);
+            }
+            await interaction.editReply({
+                content: (`✅ ¡Permisos configurados! ${modificados} canales actualizados de ${totalCanales} revisados. ` +
+                    `🔒 ${protegidos} canales/categorías de tickets y compras automáticas protegidos.` + backupStatus).slice(0, 1950)
             });
 
         } catch (error) {

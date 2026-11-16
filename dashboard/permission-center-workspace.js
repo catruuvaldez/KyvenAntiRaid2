@@ -53,6 +53,7 @@ function pc2OnGuildLoaded() {
     if (last) pc2SelectChannel(last, true);
     else { pc2.draft = []; pc2.original = []; pc2Render(); }
     pc2LoadTemplates();
+    pc2LoadRecoveryStatus();
 }
 function pc2SelectChannel(id, force = false) {
     if (!pcData || !pcData.channels.some(c => c.id === id)) return;
@@ -306,6 +307,7 @@ async function pc2ApplyPrepared() {
     try {
         const data=await pcRequest(`/api/permission-center/${pc2.guildId}/permissions/apply`,{method:'POST',body:JSON.stringify({...prepared.payload,expected:hashes,confirm:'APLICAR'})});
         const successes=data.results.filter(x=>x.ok).length,errors=data.results.filter(x=>!x.ok);
+        if (data.recoveryError) pc2Toast(data.recoveryError);
         if(errors.length){
             // Keep the unsaved draft/clipboard for correction and a new preview.
             const failure = errors.map(x=>`${x.id}: ${x.error}`).join(' · ');
@@ -313,7 +315,9 @@ async function pc2ApplyPrepared() {
             pc2Toast(`Aplicación parcial: ${successes} correctos, ${errors.length} no aplicados.`);
         } else {
             pc2.changed = false;
-            pc2Toast('Cambios aplicados y registrados en Discord.',true);
+            pc2Toast(data.recovery
+                ? `Cambios aplicados. Perfil de recuperación actualizado (${data.recovery.saved} canales).`
+                : 'Permisos aplicados en Discord, pero el perfil de recuperación no se ha actualizado.', Boolean(data.recovery));
             await pcLoadGuild();
         }
     } catch(e) { host.textContent='No se pudieron confirmar los cambios: '+e.message; }
@@ -328,4 +332,30 @@ async function pc2SyncCategory(channelId) {
     if(pc2.changed && !confirm('Hay cambios pendientes. ¿Continuar con la sincronización de categoría sin guardarlos?'))return;
     await pc2Preview({targetChannelIds:[target.id],overwrites:category.overwrites,mode:'replace-all'});
     document.getElementById('pc2Review')?.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+// Separate from reusable templates: one continuously updated *server-wide* profile.
+async function pc2LoadRecoveryStatus() {
+    const guildId = pc2.guildId;
+    if (!guildId) return;
+    const host=document.getElementById('pc2RecoveryStatus');
+    try {
+        const status=await pcRequest(`/api/permission-center/${guildId}/recovery/status`);
+        if (!host || pc2.guildId!==guildId) return;
+        host.textContent=status.exists
+            ? `Última copia: ${new Date(status.updatedAt).toLocaleString('es-AR')} · ${status.channels} canales y categorías · ${status.roles} roles`
+            : 'Sin perfil guardado. Puedes guardar la configuración actual sin modificar Discord.';
+    } catch(e) {if(host && pc2.guildId===guildId) host.textContent='No se pudo consultar el perfil: '+e.message;}
+}
+async function pc2SaveRecoverySnapshot() {
+    if (!pc2.guildId || !pcData) return pc2Toast('Selecciona primero un servidor.');
+    if (pc2.changed) return pc2Toast('Hay permisos sin guardar. Primero aplica o descarta esos cambios.');
+    if (!confirm('¿Guardar los permisos actuales del servidor para futuras recuperaciones? No modifica Discord y excluye tickets/carritos del otro bot.')) return;
+    const guildId=pc2.guildId;
+    try {
+        const result=await pcRequest(`/api/permission-center/${guildId}/recovery/capture`,{method:'POST',body:'{}'});
+        if (pc2.guildId!==guildId) return;
+        pc2Toast(`Perfil guardado: ${result.recovery.saved} canales/categorías; ${result.recovery.protected} protegidos.`,true);
+        await pc2LoadRecoveryStatus();
+    } catch(e) {pc2Toast('No se pudo guardar el perfil: '+e.message);}
 }

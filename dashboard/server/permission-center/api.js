@@ -87,6 +87,16 @@ function registerPermissionCenterApi(app, deps) {
         return Array.isArray(list) && list.length <= FLAG_NAMES.length && list.every(x => typeof x === 'string' && FLAG_SET.has(x));
     }
 
+    async function syncRecovery(guild) {
+        try {
+            await Promise.all([guild.roles.fetch(), guild.channels.fetch()]);
+            return { recovery: require('./recovery').captureProfile(guild) };
+        } catch (error) {
+            console.error('[PermissionCenter/recovery]', error);
+            return { recoveryError: 'La operación se guardó en Discord, pero el perfil de recuperación NO pudo actualizarse: ' + error.message };
+        }
+    }
+
     async function audit(action, guild, detail) {
         try {
             if (SystemActivity) await SystemActivity.create({
@@ -158,7 +168,7 @@ function registerPermissionCenterApi(app, deps) {
                 return res.status(403).json({ error: 'Crear roles con Administrator está bloqueado. Requiere PERMISSION_CENTER_ALLOW_ADMINISTRATOR=true.' });
             const role = await guild.roles.create({ name: name.trim(), color: /^#[0-9a-fA-F]{6}$/.test(color || '') ? color : undefined, permissions });
             await audit('crear rol', guild, `${role.name} (${role.id})`);
-            res.json({ ok: true, id: role.id });
+            res.json({ ok: true, id: role.id, ...(await syncRecovery(guild)) });
         } catch (e) { res.status(400).json({ error: e.message || 'No se pudo crear el rol.' }); }
     });
 
@@ -187,7 +197,7 @@ function registerPermissionCenterApi(app, deps) {
             if (!Object.keys(edit).length) return res.status(400).json({ error: 'No hay cambios.' });
             await role.edit(edit);
             await audit('editar rol', guild, `${role.name} (${role.id})`);
-            res.json({ ok: true });
+            res.json({ ok: true, ...(await syncRecovery(guild)) });
         } catch (e) { res.status(400).json({ error: e.message || 'No se pudo editar el rol.' }); }
     });
 
@@ -198,7 +208,7 @@ function registerPermissionCenterApi(app, deps) {
             if (!safeRole(guild, role, res)) return;
             const label = role.name; await role.delete('Permission Center: eliminación confirmada');
             await audit('eliminar rol', guild, label);
-            res.json({ ok: true });
+            res.json({ ok: true, ...(await syncRecovery(guild)) });
         } catch (e) { res.status(400).json({ error: e.message || 'No se pudo eliminar el rol.' }); }
     });
 
@@ -212,7 +222,7 @@ function registerPermissionCenterApi(app, deps) {
             if (parentId && (!guild.channels.cache.has(parentId) || guild.channels.cache.get(parentId).type !== Types.GuildCategory)) return res.status(400).json({ error: 'Categoría no válida.' });
             const channel = await guild.channels.create({ name: name.trim(), type: channelType, parent: channelType === Types.GuildCategory ? undefined : (parentId || undefined), topic: channelType === Types.GuildText ? String(topic || '').slice(0, 1024) : undefined });
             await audit('crear canal/categoría', guild, `${channel.name} (${channel.id})`);
-            res.json({ ok: true, id: channel.id });
+            res.json({ ok: true, id: channel.id, ...(await syncRecovery(guild)) });
         } catch (e) { res.status(400).json({ error: e.message || 'No se pudo crear el canal.' }); }
     });
 
@@ -256,7 +266,7 @@ function registerPermissionCenterApi(app, deps) {
             if (!Object.keys(edit).length) return res.status(400).json({ error: 'No hay cambios.' });
             await channel.edit(edit);
             await audit('editar canal', guild, `${channel.name} (${channel.id})`);
-            res.json({ ok: true });
+            res.json({ ok: true, ...(await syncRecovery(guild)) });
         } catch (e) { res.status(400).json({ error: e.message || 'No se pudo editar el canal.' }); }
     });
 
@@ -267,7 +277,7 @@ function registerPermissionCenterApi(app, deps) {
             if (!channel || !channel.deletable) return res.status(403).json({ error: 'Canal no eliminable por el bot.' });
             const label = channel.name; await channel.delete('Permission Center: eliminación confirmada');
             await audit('eliminar canal', guild, label);
-            res.json({ ok: true });
+            res.json({ ok: true, ...(await syncRecovery(guild)) });
         } catch (e) { res.status(400).json({ error: e.message || 'No se pudo eliminar el canal.' }); }
     });
 
@@ -281,16 +291,19 @@ function registerPermissionCenterApi(app, deps) {
             if (!channel || !channel.manageable) return res.status(403).json({ error: 'Canal no administrable.' });
             const { roleId, allow = [], deny = [] } = req.body || {};
             const role = await guild.roles.fetch(roleId).catch(() => null);
-            if (!role || role.managed || !validFlags(allow) || !validFlags(deny)) return res.status(400).json({ error: 'Rol o permisos no válidos.' });
-            if (role.id !== guild.id && role.position >= guild.members.me.roles.highest.position)
-                return res.status(403).json({ error: 'El rol está por encima del bot.' });
+            if (!role || !validFlags(allow) || !validFlags(deny)) return res.status(400).json({ error: 'Rol o permisos no válidos.' });
             if (allow.some(x => deny.includes(x))) return res.status(400).json({ error: 'Un permiso no puede estar permitido y denegado a la vez.' });
             await channel.permissionOverwrites.edit(role, {
                 ...Object.fromEntries(allow.map(x => [x, true])),
                 ...Object.fromEntries(deny.map(x => [x, false]))
             });
             await audit('editar permisos de canal', guild, `${channel.name}; rol ${role.name}`);
-            res.json({ ok: true });
+            let recovery = null, recoveryError = null;
+            try {
+                await guild.channels.fetch();
+                recovery = require('./recovery').captureProfile(guild);
+            } catch (e) { recoveryError = 'Permisos aplicados, pero falló la sincronización del respaldo: ' + e.message; console.error('[PermissionCenter/recovery]',e); }
+            res.json({ ok: true, recovery, recoveryError });
         } catch (e) { res.status(400).json({ error: e.message || 'No se pudieron guardar los permisos.' }); }
     });
 }

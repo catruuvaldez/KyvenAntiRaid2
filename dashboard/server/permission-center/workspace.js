@@ -8,7 +8,9 @@ const crypto = require('crypto');
 const { PermissionFlagsBits: FLAGS, ChannelType } = require('discord.js');
 
 // Keep templates in a hidden directory: express.static must never serve them.
-const STORE = path.join(__dirname, '..', '..', '..', '.pc-private', 'permission-templates.json');
+const STORE = process.env.NODE_ENV === 'test' && process.env.KYVEN_PC_TEMPLATE_TEST_STORE
+    ? path.resolve(process.env.KYVEN_PC_TEMPLATE_TEST_STORE)
+    : path.join(__dirname, '..', '..', '..', '.pc-private', 'permission-templates.json');
 const SNOWFLAKE = /^\d{17,20}$/;
 const MAX_TARGETS = 15;
 const MAX_OVERWRITES = 100;
@@ -175,6 +177,18 @@ function registerPermissionWorkspace(app, deps) {
         }
         return results;
     }
+    app.get('/api/permission-center/:guildId/recovery/status', auth, safeRoute(async (req, res) => {
+        const guild = await guildFor(req, res); if (!guild) return;
+        const profile = require('./recovery').findProfile(guild.id);
+        res.json({ exists:Boolean(profile), sourceGuildId:guild.id, updatedAt:profile?.updatedAt || null,
+            channels:profile?.channels?.length || 0, roles:profile?.roles?.length || 0 });
+    }));
+    app.post('/api/permission-center/:guildId/recovery/capture', auth, safeRoute(async (req, res) => {
+        const guild = await guildFor(req, res, true); if (!guild) return;
+        const recovery = require('./recovery').captureProfile(guild);
+        await audit('guardar perfil de recuperación', guild, `${recovery.saved} canales estáticos; ${recovery.protected} protegidos`);
+        res.json({ ok:true, recovery });
+    }));
     app.get('/api/permission-center/:guildId/members', auth, safeRoute(async (req, res) => {
         const guild = await guildFor(req, res); if (!guild) return;
         const query = String(req.query.query || '').trim();
@@ -255,7 +269,24 @@ function registerPermissionWorkspace(app, deps) {
                 break;
             }
         }
-        res.status(results.some(r => !r.ok) ? 207 : 200).json({ results, partial: results.some(r => !r.ok), message: 'La operación no es transaccional entre varios canales. Revisa los resultados.' });
+        // Keep the recovery profile in sync with successfully applied dashboard
+        // edits. This captures ALL static channels (not ticket/cart channels) so
+        // the old baseline plus later web changes can be transplanted together.
+        let recovery = null, recoveryError = null;
+        if (results.some(r => r.ok)) {
+            try {
+                await guild.channels.fetch();
+                recovery = require('./recovery').captureProfile(guild);
+                await audit('actualizar perfil de recuperación', guild, `${recovery.saved} canales estáticos`);
+            } catch (error) {
+                recoveryError = 'Discord guardó los permisos, pero NO se actualizó el perfil de recuperación: ' + error.message;
+                console.error('[PermissionCenter/recovery]', error);
+            }
+        }
+        res.status(results.some(r => !r.ok) ? 207 : 200).json({
+            results, partial: results.some(r => !r.ok), recovery, recoveryError,
+            message: 'La operación no es transaccional entre varios canales. Revisa los resultados.'
+        });
     }));
 }
 
