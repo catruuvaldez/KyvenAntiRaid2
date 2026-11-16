@@ -1,0 +1,61 @@
+<section id="view-activity" class="module-view">
+                    <div class="section-card">
+                        <div class="section-head">
+                            <h2>Registro Cronológico de Actividad del Sistema</h2>
+                            <span id="actTotalLabel" style="font-size:12px;color:var(--text-secondary);">0 eventos registrados</span>
+                        </div>
+
+                        <div class="table-toolbar">
+                            <div style="flex:1;min-width:240px;">
+                                <input type="text" id="actSearchInput" class="input-field no-icon" placeholder="Buscar por descripción, ID o detalle del evento..." oninput="renderActivityLogModule(1)" />
+                            </div>
+                            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                                <select id="actTypeFilter" class="select-pro" onchange="renderActivityLogModule(1)">
+                                    <option value="all">Tipo: Todos los eventos</option>
+                                    <option value="verify">Usuarios Verificados</option>
+                                    <option value="user_update">Actualizaciones de Usuario</option>
+                                    <option value="restore_start">Restauraciones Iniciadas</option>
+                                    <option value="restore_end">Restauraciones Finalizadas</option>
+                                    <option value="guild_connect">Servidores Conectados</option>
+                                    <option value="guild_disconnect">Servidores Desconectados</option>
+                                    <option value="auth">Eventos de Autenticación</option>
+                                    <option value="error">Errores y Sincronización</option>
+                                    <option value="system">Eventos de Sistema</option>
+                                </select>
+
+                                <select id="actSeverityFilter" class="select-pro" onchange="renderActivityLogModule(1)">
+                                    <option value="all">Severidad: Todas</option>
+                                    <option value="success">Éxito</option>
+                                    <option value="info">Información</option>
+                                    <option value="warning">Advertencia</option>
+                                    <option value="error">Error</option>
+                                </select>
+
+                                <input type="date" id="actDateFilter" class="select-pro" onchange="renderActivityLogModule(1)" />
+                            </div>
+                        </div>
+
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Estado</th>
+                                        <th>Categoría</th>
+                                        <th>Acontecimiento</th>
+                                        <th>Detalles Técnicos</th>
+                                        <th>Fecha y Hora Exacta</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="actTableBody"></tbody>
+                            </table>
+                        </div>
+
+                        <div class="pagination-bar">
+                            <span id="actPaginationInfo">Página 1 de 1</span>
+                            <div style="display:flex;gap:6px;">
+                                <button type="button" class="btn-secondary" id="actPrevBtn" onclick="cambiarPaginaActivity(-1)">Anterior</button>
+                                <button type="button" class="btn-secondary" id="actNextBtn" onclick="cambiarPaginaActivity(1)">Siguiente</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>

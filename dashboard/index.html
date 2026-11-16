@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KYVEN RESTORE 2.0 • CONTROL CENTER</title>
+    <link rel="icon" type="image/png" href="/api/brand-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/dashboard/css/dashboard.css">
+</head>
+<body>
+
+    <div class="ambient-glow"></div>
+
+    <!-- ==========================================================
+         1. PANTALLA DE INICIO DE SESIÓN (KYVENICON + CAMPO VACÍO)
+         ========================================================== -->
+    <!-- VIEW:login -->
+
+    <!-- ==========================================================
+         2. APLICACIÓN SPA MULTI-MÓDULO (7 APARTADOS INDEPENDIENTES)
+         ========================================================== -->
+    <div id="dashboardApp">
+        <div class="app-shell">
+            <!-- Barra Lateral Categorizada -->
+            <aside class="sidebar">
+                <div>
+                    <div class="sidebar-brand">
+                        <img class="sidebar-brand-img" src="/api/brand-icon" alt="KYVENICON" />
+                        <div>
+                            <div style="font-weight:700;font-size:14px;letter-spacing:-0.02em;color:#fff;">KYVEN RESTORE</div>
+                            <div style="font-size:10.5px;color:var(--accent-light);letter-spacing:0.08em;">CONTROL CENTER 2.0</div>
+                        </div>
+                    </div>
+
+                    <!-- CATEGORÍA 1: GENERAL -->
+                    <div class="nav-group">
+                        <div class="nav-group-label">General</div>
+                        <div class="nav-list">
+                            <button class="nav-item active" data-module="overview" onclick="switchModule('overview')">
+                                <span class="nav-item-left">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                                    <span>Overview</span>
+                                </span>
+                            </button>
+                            <button class="nav-item" data-module="activity" onclick="switchModule('activity')">
+                                <span class="nav-item-left">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                                    <span>Activity Log</span>
+                                </span>
+                                <span class="nav-badge" id="navBadgeActivity">0</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- CATEGORÍA 2: OPERACIONES -->
+                    <div class="nav-group">
+                        <div class="nav-group-label">Operaciones</div>
+                        <div class="nav-list">
+                            <button class="nav-item" data-module="restore" onclick="switchModule('restore')">
+                                <span class="nav-item-left">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                                    <span>Restore Center</span>
+                                </span>
+                                <span class="nav-badge" id="navBadgeRestore" style="display:none;">ACTIVO</span>
+                            </button>
+                            <button class="nav-item" data-module="members" onclick="switchModule('members')">
+                                <span class="nav-item-left">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                    <span>Verified Members</span>
+                                </span>
+                                <span class="nav-badge" id="navBadgeMembers">0</span>
+                            </button>
+                            <button class="nav-item" data-module="servers" onclick="switchModule('servers')">
+                                <span class="nav-item-left">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                                    <span>Connected Servers</span>
+                                </span>
+                                <span class="nav-badge" id="navBadgeServers">0</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- NUEVO: ADMINISTRACIÓN DEL SERVIDOR -->
+                    <div class="nav-group">
+                        <div class="nav-group-label">Administración Discord</div>
+                        <div class="nav-list">
+                            <button class="nav-item" data-module="permissions" onclick="switchModule('permissions')">
+                                <span class="nav-item-left">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                                    <span>Roles y permisos</span>
+                                </span>
+                                <span class="nav-badge">NEW</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- CATEGORÍA 3: SISTEMA -->
+                    <div class="nav-group">
+                        <div class="nav-group-label">Sistema</div>
+                        <div class="nav-list">
+                            <button class="nav-item" data-module="security" onclick="switchModule('security')">
+                                <span class="nav-item-left">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                    <span>Security Center</span>
+                                </span>
+                            </button>
+                            <button class="nav-item" data-module="settings" onclick="switchModule('settings')">
+                                <span class="nav-item-left">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                                    <span>Settings</span>
+                                </span>
+                            </button>
+                            <button class="nav-item" data-module="commands" onclick="switchModule('commands')"><span class="nav-item-left"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg><span>Comandos</span></span><span class="nav-badge" id="stagedCountBadge" style="display:none;">0</span></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-footer">
+                    <div class="health-summary-box">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                            <span style="color:var(--text-muted);">Administrador</span>
+                            <span id="sideAdminName" style="color:var(--accent-light);font-weight:600;">Catrii</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                            <span style="color:var(--text-muted);">MongoDB Atlas</span>
+                            <span id="sideMongoStatus" style="color:var(--success);font-weight:600;">Conectado</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;">
+                            <span style="color:var(--text-muted);">Hora Local</span>
+                            <span id="liveClock" class="mono">--:--:--</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Contenedor de Páginas -->
+            <main class="main-area">
+                <!-- Barra Superior Global con Centro de Notificaciones -->
+                <header class="top-header">
+                    <div class="page-title-block">
+                        <h1>
+                            <span id="currentModuleTitle">Overview — Resumen General</span>
+                        </h1>
+                        <p id="currentModuleSubtitle">Estado global del sistema • Última sincronización: <span id="lastSyncLabel">--</span></p>
+                    </div>
+
+                    <div class="header-actions">
+                        <div class="status-chip">
+                            <span class="dot" id="headerHealthDot"></span>
+                            <span id="headerBotTag">Conectando...</span>
+                        </div>
+
+                        <!-- Botón Centro de Notificaciones -->
+                        <button type="button" class="notif-btn" onclick="toggleNotifCenter(event)" title="Centro de Notificaciones">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                            <span class="notif-counter" id="notifBadgeCount">0</span>
+                        </button>
+
+                        <!-- Dropdown de Notificaciones -->
+                        <div class="notif-dropdown" id="notifDropdown" onclick="event.stopPropagation()">
+                            <div class="notif-head">
+                                <span>Centro de Notificaciones</span>
+                                <button type="button" class="btn-secondary" style="padding:3px 8px;font-size:11px;" onclick="marcarNotificacionesLeidas()">Marcar leídas</button>
+                            </div>
+                            <div class="notif-list" id="notifListContainer"></div>
+                        </div>
+
+                        <button type="button" class="btn-secondary" onclick="sincronizarManual()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                            <span>Sincronizar</span>
+                        </button>
+
+                        <button type="button" class="btn-danger-ghost" onclick="cerrarSesion()">
+                            <span>Salir</span>
+                        </button>
+                    </div>
+                </header>
+
+                <!-- ======================================================
+                     MÓDULO 1: OVERVIEW (EXCLUSIVAMENTE RESUMEN GENERAL)
+                     ====================================================== -->
+                <!-- VIEW:overview -->
+
+                <!-- ======================================================
+                     MÓDULO 2: ACTIVITY LOG (REGISTRO DE ACTIVIDAD COMPLETO)
+                     ====================================================== -->
+                <!-- VIEW:activity -->
+
+                <!-- ======================================================
+                     MÓDULO 3: RESTORE CENTER (CENTRO DE RESTABLECIMIENTO)
+                     ====================================================== -->
+                <!-- VIEW:restore -->
+
+                <!-- ======================================================
+                     MÓDULO 4: VERIFIED MEMBERS (DIRECTORIO EXCLUSIVO)
+                     ====================================================== -->
+                <!-- VIEW:members -->
+
+                <!-- ======================================================
+                     MÓDULO 5: CONNECTED SERVERS (SERVIDORES CONECTADOS)
+                     ====================================================== -->
+                <!-- VIEW:servers -->
+
+                <!-- ======================================================
+                     MÓDULO 6: SECURITY CENTER (CENTRO DE SEGURIDAD)
+                     ====================================================== -->
+                <!-- VIEW:security -->
+
+                <!-- ======================================================
+                     MÓDULO 7: SETTINGS (CONFIGURACIÓN DEL PANEL)
+                     ====================================================== -->
+                <!-- VIEW:settings -->
+
+                <!-- KYVEN PERMISSION CONTROL CENTER - integrado en el dashboard -->
+                <!-- VIEW:permissions -->
+
+                <!-- VIEW:commands -->
+            </main>
+        </div>
+    </div>
+
+    <!-- ==========================================================
+         3. DRAWER LATERAL: PERFIL INDIVIDUAL DE USUARIO
+         ========================================================== -->
+    <div class="drawer-backdrop" id="drawerBackdrop" onclick="cerrarDrawers()"></div>
+
+    <aside class="side-drawer" id="userDrawer">
+        <div class="drawer-header">
+            <div style="display:flex;align-items:center;gap:14px;">
+                <img id="dwAvatar" src="https://cdn.discordapp.com/embed/avatars/0.png" style="width:54px;height:54px;border-radius:50%;border:2px solid var(--accent-secondary);" alt="Avatar" />
+                <div>
+                    <div id="dwUsername" style="font-size:16px;font-weight:700;color:#fff;">Usuario</div>
+                    <div id="dwUserId" class="mono" style="font-size:12px;color:var(--accent-light);">000000000000000000</div>
+                    <div id="dwStatusBadge" style="margin-top:5px;"></div>
+                </div>
+            </div>
+            <button type="button" class="btn-secondary" style="padding:5px 9px;" onclick="cerrarDrawers()">✕</button>
+        </div>
+
+        <div class="drawer-content">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+                <button type="button" class="btn-secondary" style="justify-content:center;" onclick="copiarDatoUsuario('id')">Copiar ID</button>
+                <button type="button" class="btn-secondary" style="justify-content:center;" onclick="copiarDatoUsuario('username')">Copiar Nombre</button>
+                <a id="dwProfileLink" class="btn-secondary" style="justify-content:center;text-decoration:none;" href="#" target="_blank" rel="noopener noreferrer">Abrir Perfil ↗</a>
+            </div>
+
+            <div>
+                <div style="font-size:11.5px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;margin-bottom:8px;">Ficha Técnica del Miembro</div>
+                <div class="info-grid-card">
+                    <div>
+                        <div class="info-cell-label">Fecha de Verificación</div>
+                        <div class="info-cell-val" id="dwVerifiedAt">--</div>
+                    </div>
+                    <div>
+                        <div class="info-cell-label">Creación Cuenta Discord</div>
+                        <div class="info-cell-val" id="dwDiscordCreated">--</div>
+                    </div>
+                    <div>
+                        <div class="info-cell-label">Creación en Base de Datos</div>
+                        <div class="info-cell-val" id="dwDbCreated">--</div>
+                    </div>
+                    <div>
+                        <div class="info-cell-label">Última Actualización</div>
+                        <div class="info-cell-val" id="dwDbUpdated">--</div>
+                    </div>
+                    <div style="grid-column:span 2;">
+                        <div class="info-cell-label">Última Actividad Registrada</div>
+                        <div class="info-cell-val" id="dwLastActivity">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div style="font-size:11.5px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;margin-bottom:8px;">Servidores Asociados</div>
+                <div id="dwServersContainer" style="display:flex;flex-direction:column;gap:8px;"></div>
+            </div>
+
+            <div>
+                <div style="font-size:11.5px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;margin-bottom:8px;">Historial de Eventos del Usuario</div>
+                <div class="timeline-list" id="dwTimelineContainer"></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ==========================================================
+         4. DRAWER LATERAL: DETALLE DE SERVIDOR CONECTADO
+         ========================================================== -->
+    <aside class="side-drawer" id="serverDrawer">
+        <div class="drawer-header">
+            <div style="display:flex;align-items:center;gap:14px;">
+                <div id="sdIconBox" class="server-icon">SV</div>
+                <div>
+                    <div id="sdName" style="font-size:16px;font-weight:700;color:#fff;">Servidor</div>
+                    <div id="sdId" class="mono" style="font-size:12px;color:var(--accent-light);">000000000</div>
+                </div>
+            </div>
+            <button type="button" class="btn-secondary" style="padding:5px 9px;" onclick="cerrarDrawers()">✕</button>
+        </div>
+
+        <div class="drawer-content">
+            <div class="info-grid-card">
+                <div>
+                    <div class="info-cell-label">Cantidad de Miembros</div>
+                    <div class="info-cell-val mono" id="sdMemberCount">0</div>
+                </div>
+                <div>
+                    <div class="info-cell-label">Estado de Conexión</div>
+                    <div class="info-cell-val" style="color:var(--success);">Conectado en caché</div>
+                </div>
+                <div>
+                    <div class="info-cell-label">Estado de Integración</div>
+                    <div class="info-cell-val" id="sdIntegration">--</div>
+                </div>
+                <div>
+                    <div class="info-cell-label">Fecha de Registro Bot</div>
+                    <div class="info-cell-val" id="sdJoinedAt">--</div>
+                </div>
+                <div>
+                    <div class="info-cell-label">ID del Propietario</div>
+                    <div class="info-cell-val mono" id="sdOwnerId">--</div>
+                </div>
+                <div>
+                    <div class="info-cell-label">Última Sincronización</div>
+                    <div class="info-cell-val" id="sdLastSync">--</div>
+                </div>
+            </div>
+
+            <button type="button" class="btn-primary" onclick="seleccionarServidorParaRestore()">
+                ⚡ Usar este Servidor en Restore Center
+            </button>
+        </div>
+    </aside>
+
+    <!-- ==========================================================
+         5. MODALES DE CONFIRMACIÓN Y DETALLE DE OPERACIÓN RESTORE
+         ========================================================== -->
+    <div class="modal-overlay" id="confirmRestoreModal">
+        <div class="modal-box">
+            <h3 style="font-size:16px;font-weight:600;margin-bottom:10px;">Confirmar Operación en Restore Center</h3>
+            <p id="confirmRestoreText" style="color:var(--text-secondary);font-size:13px;margin-bottom:20px;"></p>
+            <div style="display:flex;justify-content:flex-end;gap:10px;">
+                <button type="button" class="btn-secondary" onclick="cerrarModales()">Cancelar</button>
+                <button type="button" class="btn-primary" style="width:auto;" onclick="confirmarYEjecutarRestore()">Confirmar e Iniciar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="restoreDetailModal">
+        <div class="modal-box">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                <h3 style="font-size:16px;font-weight:600;" id="rdModalTitle">Detalle de Operación</h3>
+                <button type="button" class="btn-secondary" style="padding:4px 8px;" onclick="cerrarModales()">✕</button>
+            </div>
+            <div class="info-grid-card" id="rdModalGrid" style="margin-bottom:14px;"></div>
+            <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">Registro de Incidencias del Lote</div>
+            <div id="rdModalErrors" style="background:rgba(8,6,15,0.9);border:1px solid var(--border-subtle);border-radius:8px;padding:10px;max-height:160px;overflow-y:auto;font-size:12px;color:var(--text-secondary);"></div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="modal-overlay" id="commandReviewModal"><div class="modal-box" style="width:min(900px,96vw);max-height:85vh;overflow:auto;background:#110e1c;border:1px solid rgba(168,85,247,.4);">
+        <h3 style="margin-bottom:12px;">Revisión de cambios</h3><div id="commandDiffList" style="max-height:55vh;overflow:auto;margin-bottom:16px;"></div>
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;"><button class="btn-secondary" onclick="discardStagedCommands()">🗑️ Deshacer Todos los Cambios</button><div style="display:flex;gap:8px;"><button class="btn-secondary" onclick="closeCommandReview()">Seguir editando</button><button class="btn-primary" onclick="applyStagedCommands()">🚀 Aplicar Cambios y Actualizar Bot</button></div></div>
+    </div></div>
+    <div id="rebuildOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(4,3,9,.96);align-items:center;justify-content:center;text-align:center;"><div><div class="spinner" style="margin:0 auto 22px;"></div><h2 id="rebuildMessage">Sincronizando y Reiniciando Servidor...</h2><button id="rebuildLogin" class="btn-primary" style="display:none;margin:20px auto;" onclick="location.href='/dashboard'">Volver al Login</button></div></div>
+
+    <!-- ==========================================================
+         6. LÓGICA FRONTEND SPA COMPLETA
+         ========================================================== -->
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
+    <script src="/dashboard/js/dashboard.js"></script>
+    <script src="/permission-center/dashboard.js"></script>
+    <script src="/dashboard/server/command-editor.js"></script>
+</body>
+</html>

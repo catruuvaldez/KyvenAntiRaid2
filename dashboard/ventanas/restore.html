@@ -1,0 +1,108 @@
+<section id="view-restore" class="module-view">
+                    <div class="two-col-grid">
+                        <!-- Panel de Configuración y Lanzamiento -->
+                        <div class="section-card">
+                            <div class="section-head">
+                                <h2>Configurar Operación en Restore Center</h2>
+                                <span class="badge-status info">Máx. 500 por lote</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <span>Seleccionar Servidor Asociado</span>
+                                    <span style="color:var(--text-muted);">Bot presente</span>
+                                </label>
+                                <select id="rcGuildSelect" class="input-field no-icon"></select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <span>O Introducir ID de Servidor Manualmente</span>
+                                    <span class="mono" style="color:var(--text-muted);">Opcional</span>
+                                </label>
+                                <input type="text" id="rcCustomGuildId" class="input-field no-icon mono" placeholder="Ej: 1547412298145202226" />
+                            </div>
+
+                            <div class="form-group" style="margin-bottom:20px;">
+                                <label class="form-label">
+                                    <span>Cantidad de Miembros a Transferir (1 - 500)</span>
+                                    <span id="rcAvailableHint" style="color:var(--accent-light);">Disponibles: 0</span>
+                                </label>
+                                <input type="number" id="rcPullAmount" class="input-field no-icon mono" value="500" min="1" max="500" />
+                            </div>
+
+                            <button type="button" class="btn-primary" id="rcStartBtn" onclick="solicitarConfirmacionRestore()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                <span>Iniciar Restauración en Restore Center</span>
+                            </button>
+                        </div>
+
+                        <!-- Telemetría de Operación en Tiempo Real -->
+                        <div class="section-card">
+                            <div class="section-head">
+                                <h2>Estado de la Operación Actual</h2>
+                                <span class="badge-status info" id="rcLiveStatusBadge">En Espera</span>
+                            </div>
+
+                            <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;">
+                                <span id="rcLiveTargetLabel" style="color:var(--text-secondary);">Ninguna operación ejecutándose</span>
+                                <span class="mono" id="rcLivePctLabel" style="color:var(--accent-light);font-weight:700;">0%</span>
+                            </div>
+
+                            <div class="progress-track">
+                                <div class="progress-fill" id="rcLiveProgressBar"></div>
+                            </div>
+
+                            <div class="info-grid-card" style="margin-top:14px;">
+                                <div>
+                                    <div class="info-cell-label">Cantidad Procesada</div>
+                                    <div class="info-cell-val mono" id="rcMetricProcessed">0</div>
+                                </div>
+                                <div>
+                                    <div class="info-cell-label">Cantidad Pendiente</div>
+                                    <div class="info-cell-val mono" id="rcMetricPending">0</div>
+                                </div>
+                                <div>
+                                    <div class="info-cell-label">Unidos / Ya Presentes</div>
+                                    <div class="info-cell-val mono" id="rcMetricCompleted" style="color:var(--success);">0 / 0</div>
+                                </div>
+                                <div>
+                                    <div class="info-cell-label">Errores Encontrados</div>
+                                    <div class="info-cell-val mono" id="rcMetricErrors" style="color:var(--danger);">0</div>
+                                </div>
+                                <div style="grid-column:span 2;">
+                                    <div class="info-cell-label">Tiempo Transcurrido</div>
+                                    <div class="info-cell-val mono" id="rcMetricElapsed">00:00</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Historial Persistente de Restauraciones -->
+                    <div class="section-card">
+                        <div class="section-head">
+                            <h2>Historial de Restauraciones Ejecutadas</h2>
+                            <span style="font-size:12px;color:var(--text-secondary);">Haz clic en cualquier operación para inspeccionar su reporte detallado</span>
+                        </div>
+
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID Operación</th>
+                                        <th>Servidor Destino</th>
+                                        <th>Estado</th>
+                                        <th>Procesados</th>
+                                        <th>Unidos</th>
+                                        <th>Ya Presentes</th>
+                                        <th>Errores</th>
+                                        <th>Duración</th>
+                                        <th>Fecha de Inicio</th>
+                                        <th style="text-align:right;">Detalle</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rcHistoryTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>

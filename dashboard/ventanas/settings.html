@@ -1,0 +1,75 @@
+<section id="view-settings" class="module-view">
+                    <div class="two-col-grid">
+                        <div class="section-card">
+                            <div class="section-head">
+                                <h2>Preferencias Visuales y de Experiencia</h2>
+                            </div>
+
+                            <div class="setting-row">
+                                <div>
+                                    <div style="font-weight:600;">Animaciones y Transiciones Fluidas</div>
+                                    <div style="font-size:12px;color:var(--text-muted);">Habilitar transiciones suaves al cambiar de módulo y partículas en login</div>
+                                </div>
+                                <button type="button" class="switch-btn on" id="toggleAnimationsBtn" onclick="togglePreference('animations')"></button>
+                            </div>
+
+                            <div class="setting-row">
+                                <div>
+                                    <div style="font-weight:600;">Modo de Tabla Compacta</div>
+                                    <div style="font-size:12px;color:var(--text-muted);">Reducir el espaciado vertical en Verified Members y Activity Log</div>
+                                </div>
+                                <button type="button" class="switch-btn" id="toggleCompactBtn" onclick="togglePreference('compact')"></button>
+                            </div>
+
+                            <div class="setting-row">
+                                <div>
+                                    <div style="font-weight:600;">Notificaciones Emergentes (Toasts)</div>
+                                    <div style="font-size:12px;color:var(--text-muted);">Mostrar avisos en tiempo real cuando se verifiquen nuevos miembros o finalice un restore</div>
+                                </div>
+                                <button type="button" class="switch-btn on" id="toggleToastsBtn" onclick="togglePreference('toasts')"></button>
+                            </div>
+
+                            <div class="setting-row">
+                                <div>
+                                    <div style="font-weight:600;">Intervalo de Sincronización Automática</div>
+                                    <div style="font-size:12px;color:var(--text-muted);">Frecuencia con la que el panel consulta a MongoDB Atlas</div>
+                                </div>
+                                <select id="settingSyncInterval" class="select-pro" onchange="cambiarIntervaloSync()">
+                                    <option value="5000">Cada 5 segundos</option>
+                                    <option value="8000" selected>Cada 8 segundos (Recomendado)</option>
+                                    <option value="15000">Cada 15 segundos</option>
+                                    <option value="30000">Cada 30 segundos</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="section-card">
+                            <div class="section-head">
+                                <h2>Información de la Aplicación e Integraciones</h2>
+                            </div>
+
+                            <div class="info-grid-card" style="margin-bottom:16px;">
+                                <div>
+                                    <div class="info-cell-label">Versión del Sistema</div>
+                                    <div class="info-cell-val mono">KYVEN RESTORE 2.0</div>
+                                </div>
+                                <div>
+                                    <div class="info-cell-label">Entorno Node.js</div>
+                                    <div class="info-cell-val mono" id="setNodeVer">--</div>
+                                </div>
+                                <div>
+                                    <div class="info-cell-label">Identidad del Bot</div>
+                                    <div class="info-cell-val" id="setBotTag">--</div>
+                                </div>
+                                <div>
+                                    <div class="info-cell-label">Base de Datos</div>
+                                    <div class="info-cell-val" id="setMongoState">MongoDB Atlas</div>
+                                </div>
+                            </div>
+
+                            <button type="button" class="btn-secondary" style="width:100%;justify-content:center;" onclick="ejecutarPingServicios()">
+                                ⚡ Ejecutar Diagnóstico de Latencia (MongoDB & Discord)
+                            </button>
+                        </div>
+                    </div>
+                </section>

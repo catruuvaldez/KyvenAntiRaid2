@@ -1,0 +1,135 @@
+<section id="view-overview" class="module-view active">
+                    <div class="kpi-grid-4">
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span class="stat-title">Usuarios Verificados</span>
+                                <div class="stat-icon">
+                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                                </div>
+                            </div>
+                            <div style="display:flex;align-items:baseline;justify-content:space-between;">
+                                <div class="stat-number mono" id="ovTotalUsers">0</div>
+                                <svg id="ovSparklineUsers" width="84" height="26" viewBox="0 0 84 26"></svg>
+                            </div>
+                            <div class="stat-footer">
+                                <span id="ovActiveTokensLabel">0 con OAuth2 activo</span>
+                                <span style="color:var(--accent-light);cursor:pointer;" onclick="switchModule('members')">Ver directorio →</span>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span class="stat-title">Servidores Conectados</span>
+                                <div class="stat-icon">
+                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/></svg>
+                                </div>
+                            </div>
+                            <div class="stat-number mono" id="ovTotalGuilds">0</div>
+                            <div class="stat-footer">
+                                <span id="ovGuildReachLabel">Alcance: 0 miembros</span>
+                                <span style="color:var(--accent-light);cursor:pointer;" onclick="switchModule('servers')">Administrar →</span>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span class="stat-title">Sistema OAuth2 & DB</span>
+                                <div class="stat-icon">
+                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                </div>
+                            </div>
+                            <div class="stat-number" id="ovSystemStatusText" style="font-size:21px;">Operativo</div>
+                            <div class="stat-footer">
+                                <span id="ovMongoStateSmall">MongoDB Atlas Activo</span>
+                                <span class="mono" id="ovPingSmall">-- ms</span>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span class="stat-title">Motor Anti-Rate Limit</span>
+                                <div class="stat-icon">
+                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                                </div>
+                            </div>
+                            <div class="stat-number" id="ovQueueStateText" style="font-size:21px;">En Espera</div>
+                            <div class="stat-footer">
+                                <span id="ovLastRestoreSummary">Sin lote activo</span>
+                                <span style="color:var(--accent-light);cursor:pointer;" onclick="switchModule('restore')">Restore Center →</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="two-col-grid">
+                        <!-- Salud de los Servicios en Tiempo Real -->
+                        <div class="section-card">
+                            <div class="section-head">
+                                <h2>Estado y Salud de Servicios</h2>
+                                <span class="badge-status active" id="ovHealthGlobalBadge">Todos los sistemas operativos</span>
+                            </div>
+
+                            <div class="health-row-item">
+                                <div>
+                                    <div style="font-weight:600;">Clúster MongoDB Atlas</div>
+                                    <div style="font-size:11.5px;color:var(--text-muted);">Almacenamiento persistente de credenciales OAuth2 y auditoría</div>
+                                </div>
+                                <span class="badge-status active" id="ovHealthMongo">Conectado</span>
+                            </div>
+
+                            <div class="health-row-item">
+                                <div>
+                                    <div style="font-weight:600;">Cliente Discord Gateway</div>
+                                    <div style="font-size:11.5px;color:var(--text-muted);" id="ovHealthBotDetail">Sesión activa del bot</div>
+                                </div>
+                                <span class="badge-status active" id="ovHealthBot">En Línea</span>
+                            </div>
+
+                            <div class="health-row-item">
+                                <div>
+                                    <div style="font-weight:600;">Pasarela OAuth2 (guilds.join + identify)</div>
+                                    <div style="font-size:11.5px;color:var(--text-muted);">Renovación automática de tokens caducados habilitada</div>
+                                </div>
+                                <span class="badge-status active" id="ovHealthOAuth">Configurado</span>
+                            </div>
+
+                            <div class="health-row-item" style="margin-bottom:0;">
+                                <div>
+                                    <div style="font-weight:600;">Protección Anti-Rate Limit</div>
+                                    <div style="font-size:11.5px;color:var(--text-muted);">Cadencia regulada a 1.35s por miembro (máx. 500 por lote)</div>
+                                </div>
+                                <span class="badge-status info">1.35s / req</span>
+                            </div>
+                        </div>
+
+                        <!-- Resumen de Actividad Reciente -->
+                        <div class="section-card">
+                            <div class="section-head">
+                                <h2>Resumen de Actividad Reciente</h2>
+                                <button type="button" class="btn-secondary" style="padding:5px 10px;font-size:11.5px;" onclick="switchModule('activity')">Abrir Activity Log →</button>
+                            </div>
+                            <div id="ovRecentActivitiesList" style="display:flex;flex-direction:column;gap:8px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Últimas Operaciones Importantes de Restauración -->
+                    <div class="section-card">
+                        <div class="section-head">
+                            <h2>Últimas Operaciones de Restauración Registradas</h2>
+                            <button type="button" class="btn-secondary" style="padding:5px 10px;font-size:11.5px;" onclick="switchModule('restore')">Ir a Restore Center →</button>
+                        </div>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID Operación</th>
+                                        <th>Servidor Destino</th>
+                                        <th>Estado</th>
+                                        <th>Completados / Procesados</th>
+                                        <th>Fecha</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ovLastRestoresBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>

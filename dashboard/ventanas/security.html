@@ -1,0 +1,75 @@
+<section id="view-security" class="module-view">
+                    <div class="kpi-grid-3">
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span class="stat-title">Sesiones Administrativas</span>
+                                <span class="badge-status active">SHA-256</span>
+                            </div>
+                            <div class="stat-number mono" id="secActiveSessions">1</div>
+                            <div class="stat-footer">
+                                <span id="secSessionExpiryLabel">Expira en 12h</span>
+                                <button type="button" class="btn-secondary" style="padding:3px 8px;font-size:11px;" onclick="revocarOtrasSesiones()">Cerrar otras</button>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span class="stat-title">Escudo Anti-Fuerza Bruta</span>
+                                <span class="badge-status active" id="secBruteBadge">Protegido</span>
+                            </div>
+                            <div class="stat-number mono" id="secFailedAttempts">0</div>
+                            <div class="stat-footer">
+                                <span id="secBlockedIpsLabel">0 IPs bloqueadas</span>
+                                <span>Límite: 5 intentos</span>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span class="stat-title">Salud de Tokens OAuth2</span>
+                                <span class="badge-status info">Encriptación TLS</span>
+                            </div>
+                            <div class="stat-number mono" id="secOAuthHealthy">0</div>
+                            <div class="stat-footer">
+                                <span id="secOAuthBreakdown">Renovados: 0 • Expirados: 0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="two-col-grid">
+                        <div class="section-card">
+                            <div class="section-head">
+                                <h2>Estado de Integraciones y Controles de Seguridad</h2>
+                                <button type="button" class="btn-secondary" style="padding:5px 10px;font-size:11.5px;" onclick="ejecutarPingServicios()">Comprobar Servicios</button>
+                            </div>
+
+                            <div class="health-row-item">
+                                <span>Autenticación de Panel Privado (Usuario: Catrii)</span>
+                                <span class="badge-status active">Verificado</span>
+                            </div>
+                            <div class="health-row-item">
+                                <span>Protección de Comandos Discord (Modal BACKUP_PIN)</span>
+                                <span class="badge-status active">Activa</span>
+                            </div>
+                            <div class="health-row-item">
+                                <span>Protección Anti-Rate Limit en Transferencias</span>
+                                <span class="badge-status info">1350ms / usuario</span>
+                            </div>
+                            <div class="health-row-item">
+                                <span>Ocultación de Tokens OAuth2 y Secretos en Frontend</span>
+                                <span class="badge-status active">100% Filtrado en API</span>
+                            </div>
+                            <div class="health-row-item" style="margin-bottom:0;">
+                                <span>Última Comprobación de Servicios Externos</span>
+                                <span class="mono" id="secLastCheckTime">--</span>
+                            </div>
+                        </div>
+
+                        <div class="section-card">
+                            <div class="section-head">
+                                <h2>Eventos Recientes de Seguridad y Acceso</h2>
+                            </div>
+                            <div id="secEventsList" style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;"></div>
+                        </div>
+                    </div>
+                </section>

@@ -10,9 +10,11 @@ function startDashboardServer(dependencies) {
     const PORT = process.env.PORT || 3000;
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
-    app.use(express.static(dependencies.rootDir));
     registerApiRoutes(app, dependencies);
     registerDashboardPage(app);
+    // Register application routes before static files so /dashboard and
+    // /dashboard/ are rendered through the view composer, not dashboard/index.html.
+    app.use(express.static(dependencies.rootDir));
     app.listen(PORT, () => {
         console.log(`?? KYVEN RESTORE 2.0 ? CONTROL CENTER activo en el puerto ${PORT}`);
     });

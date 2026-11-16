@@ -1,0 +1,55 @@
+<section id="view-members" class="module-view">
+                    <div class="section-card">
+                        <div class="section-head">
+                            <h2>Directorio de Miembros Verificados (OAuth2)</h2>
+                            <span id="vmCountSummary" style="font-size:12.5px;color:var(--text-secondary);">Mostrando 0 usuarios</span>
+                        </div>
+
+                        <div class="table-toolbar">
+                            <div style="flex:1;min-width:260px;">
+                                <input type="text" id="vmSearchInput" class="input-field no-icon" placeholder="Buscar por nombre de usuario o ID de Discord..." oninput="renderMembersModule(1)" />
+                            </div>
+
+                            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                                <select id="vmStatusFilter" class="select-pro" onchange="renderMembersModule(1)">
+                                    <option value="all">Estado OAuth2: Todos</option>
+                                    <option value="active">OAuth2 Activo</option>
+                                    <option value="refreshed">Token Renovado</option>
+                                    <option value="expired">Token Expirado</option>
+                                </select>
+
+                                <select id="vmSortSelect" class="select-pro" onchange="renderMembersModule(1)">
+                                    <option value="verify_desc">Verificación: Más recientes</option>
+                                    <option value="verify_asc">Verificación: Más antiguos</option>
+                                    <option value="created_desc">Creación registro: Más recientes</option>
+                                    <option value="created_asc">Creación registro: Más antiguos</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Miembro</th>
+                                        <th>ID de Discord</th>
+                                        <th>Estado del Token</th>
+                                        <th>Fecha de Verificación</th>
+                                        <th>Creación del Registro</th>
+                                        <th>Creación Cuenta Discord</th>
+                                        <th style="text-align:right;">Perfil</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="vmTableBody"></tbody>
+                            </table>
+                        </div>
+
+                        <div class="pagination-bar">
+                            <span id="vmPaginationInfo">Página 1 de 1</span>
+                            <div style="display:flex;gap:6px;">
+                                <button type="button" class="btn-secondary" id="vmPrevBtn" onclick="cambiarPaginaMembers(-1)">Anterior</button>
+                                <button type="button" class="btn-secondary" id="vmNextBtn" onclick="cambiarPaginaMembers(1)">Siguiente</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>

@@ -1,0 +1,44 @@
+<section id="view-permissions" class="module-view">
+                    <div class="section-card" style="margin-bottom:16px;padding:18px;">
+                        <div style="display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap;">
+                            <div>
+                                <h2 style="font-size:18px;margin-bottom:4px;">Permission Control Center</h2>
+                                <p style="color:var(--text-secondary);">Administra roles, canales y permisos sin salir de KYVEN RESTORE.</p>
+                            </div>
+                            <button class="btn-secondary" onclick="pcLoad()">↻ Actualizar datos</button>
+                        </div>
+                        <div style="display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:12px;margin-top:16px;align-items:end;">
+                            <label style="display:block;color:var(--text-secondary);font-size:12px;">Servidor Discord
+                                <select id="pcGuild" class="select-pro" style="display:block;width:100%;margin-top:6px;" onchange="pcLoadGuild()">
+                                    <option value="">Cargando servidores...</option>
+                                </select>
+                            </label>
+                            <div id="pcStatus" class="status-chip">Esperando selección</div>
+                        </div>
+                    </div>
+                    <div class="kpi-grid-3">
+                        <div class="stat-card"><div class="stat-title">Roles</div><div class="stat-number mono" id="pcRoleCount">—</div><div class="stat-footer">Incluye roles administrados</div></div>
+                        <div class="stat-card"><div class="stat-title">Canales y categorías</div><div class="stat-number mono" id="pcChannelCount">—</div><div class="stat-footer">Configuración del servidor</div></div>
+                        <div class="stat-card"><div class="stat-title">Estado del bot</div><div class="stat-number" style="font-size:17px;" id="pcBotPerms">—</div><div class="stat-footer">Jerarquía y permisos requeridos</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:minmax(260px, .8fr) minmax(0,1.5fr);gap:16px;align-items:start;">
+                        <div class="section-card" style="padding:16px;">
+                            <div class="section-head"><h2>Roles del servidor</h2><button class="btn-primary" style="width:auto;padding:7px 12px;" onclick="pcCreateRole()">+ Crear</button></div>
+                            <input id="pcRoleSearch" class="input-field no-icon" placeholder="Buscar rol..." oninput="pcRenderRoles()" style="margin:10px 0;width:100%;">
+                            <div id="pcRolesList" style="display:flex;flex-direction:column;gap:6px;max-height:600px;overflow:auto;"></div>
+                        </div>
+                        <div class="section-card" style="padding:16px;">
+                            <div class="section-head"><h2 id="pcDetailTitle">Selecciona un rol o canal</h2><span class="badge-status info">Cambios confirmados</span></div>
+                            <div id="pcDetail" style="color:var(--text-secondary);padding:12px 0;">Selecciona un elemento para ver sus detalles.</div>
+                        </div>
+                    </div>
+                    <div class="section-card" style="padding:16px;margin-top:16px;">
+                        <div class="section-head"><h2>Canales y categorías</h2><button class="btn-primary" style="width:auto;padding:7px 12px;" onclick="pcCreateChannel()">+ Crear canal</button></div>
+                        <input id="pcChannelSearch" class="input-field no-icon" placeholder="Buscar canal o categoría..." oninput="pcRenderChannels()" style="margin:10px 0;width:100%;">
+                        <div id="pcChannelsList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;"></div>
+                    </div>
+                    <div class="section-card" style="padding:14px;margin-top:16px;border-color:rgba(245,158,11,.3);">
+                        <strong style="color:#fbbf24;">Protecciones activas</strong>
+                        <p style="color:var(--text-secondary);margin-top:5px;">Los cambios se aplican solo después de confirmarlos. El bot no puede editar roles administrados ni roles situados por encima de su jerarquía. La eliminación de roles y canales es irreversible desde Discord.</p>
+                    </div>
+                </section>

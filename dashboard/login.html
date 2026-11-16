@@ -1,0 +1,82 @@
+<section id="loginScreen">
+        <canvas id="particleCanvas"></canvas>
+
+        <div class="login-container">
+            <div class="login-brand-header">
+                <div class="login-brand-title">KYVEN RESTORE</div>
+                <div class="login-brand-sub">Control Center 2.0 • Acceso Privado</div>
+            </div>
+
+            <div class="login-card">
+                <div class="kyven-brand-frame" title="KYVENICON Oficial">
+                    <img src="/api/brand-icon" alt="KYVENICON" />
+                </div>
+
+                <div class="login-tabs">
+                    <button type="button" class="login-tab active" id="tabBtnAuth" onclick="switchLoginTab('auth')">Autenticación</button>
+                    <button type="button" class="login-tab" id="tabBtnStatus" onclick="switchLoginTab('status')">Estado del Sistema</button>
+                </div>
+
+                <!-- Sub-vista 1: Formulario de Acceso (Usuario completamente vacío) -->
+                <div id="loginAuthPane">
+                    <div class="login-alert" id="loginAlertBox">
+                        <span id="loginAlertText">Credenciales inválidas</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <span>Usuario Administrador</span>
+                            <span class="mono" style="font-size:11px;color:var(--accent-light);">PRIVADO</span>
+                        </label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            <input type="text" id="loginUser" class="input-field" value="" placeholder="Ingresa tu usuario administrador" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter') handleLogin()" />
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:22px;">
+                        <label class="form-label">
+                            <span>Código de Seguridad Personal (PIN)</span>
+                            <span style="font-size:11px;color:var(--text-muted);">SHA-256</span>
+                        </label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            <input type="password" id="loginPin" class="input-field" value="" placeholder="••••••••••" autocomplete="off" onkeydown="if(event.key==='Enter') handleLogin()" />
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-primary" id="loginBtn" onclick="handleLogin()">
+                        <span id="loginBtnText">Ingresar a Control Center</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    </button>
+                </div>
+
+                <!-- Sub-vista 2: Estado del Sistema Funcional en el Login -->
+                <div id="loginStatusPane" style="display:none;">
+                    <div class="health-row-item">
+                        <span style="color:var(--text-secondary);">Clúster MongoDB Atlas</span>
+                        <span style="display:flex;align-items:center;gap:6px;font-weight:600;" id="pubMongoState">
+                            <span class="dot" id="pubMongoDot"></span> Verificando...
+                        </span>
+                    </div>
+                    <div class="health-row-item">
+                        <span style="color:var(--text-secondary);">Discord Gateway Bot</span>
+                        <span style="display:flex;align-items:center;gap:6px;font-weight:600;" id="pubBotState">
+                            <span class="dot" id="pubBotDot"></span> Verificando...
+                        </span>
+                    </div>
+                    <div class="health-row-item">
+                        <span style="color:var(--text-secondary);">Latencia WebSocket</span>
+                        <span class="mono" id="pubBotPing">-- ms</span>
+                    </div>
+                    <div class="health-row-item">
+                        <span style="color:var(--text-secondary);">Tiempo Activo del Servidor</span>
+                        <span class="mono" id="pubUptime">--</span>
+                    </div>
+                    <button type="button" class="btn-secondary" style="width:100%;justify-content:center;margin-top:10px;" onclick="verificarSaludPublica(true)">
+                        🔄 Comprobar Estado Ahora
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
