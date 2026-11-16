@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { registerPermissionCenterApi } = require('./permission-center/api');
 
 function registerApiRoutes(app, { rootDir, ADMIN_USER, CODIGO_SECRETO, mongoose, client, OAuthToken, SystemActivity, RestoreOperation, registrarActividadSistema, sincronizarCache, verificarRateLimitIP, registrarFalloIP, validarSesionToken, sesionesActivas, intentosFallidos, localizarArchivoKyvenIcon, renderErrorPage, getRestoreState, transferirMiembrosSeguro }) {
 const commandRoots = ['commands'];
@@ -533,6 +534,9 @@ app.post('/api/commands-batch-commit', async (req, res) => {
         res.status(502).json({ error: `No se pudo completar la sincronización: ${error.message}` });
     }
 });
+    // Módulo nuevo aislado: no reemplaza ni modifica las rutas actuales de KYVEN RESTORE.
+    registerPermissionCenterApi(app, { client, validarSesionToken, sesionesActivas, SystemActivity });
+
 }
 
 module.exports = { registerApiRoutes };
