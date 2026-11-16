@@ -12,7 +12,7 @@ function registerDashboardPage(app) {
         let html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
         const views = {"overview":"overview.html","activity":"activity.html","restore":"restore.html","members":"verified-members.html","servers":"connected-servers.html","permissions":"permission-center.html","security":"security.html","settings":"settings.html","commands":"commands.html"};
         for (const [id, filename] of Object.entries(views)) {
-            html = html.replace(`<!-- VIEW:${id} -->`, fs.readFileSync(path.join(__dirname, '..', 'ventanas', filename), 'utf8'));
+            html = html.replace(`<!-- VIEW:${id} -->`, fs.readFileSync(path.join(__dirname, '..', 'pages', filename), 'utf8'));
         }
         html = html.replace('<!-- VIEW:login -->', fs.readFileSync(path.join(__dirname, '..', 'login.html'), 'utf8'));
         res.type('html').send(html);
