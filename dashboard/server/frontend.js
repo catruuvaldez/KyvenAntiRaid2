@@ -1,6 +1,12 @@
 'use strict';
 
 function registerDashboardPage(app) {
+    // The Permission Center module lives under dashboard/server, outside the
+    // document root exposed by express.static(rootDir). Serve its browser code
+    // explicitly so the existing dashboard can initialize pcLoad().
+    app.get('/permission-center/dashboard.js', (req, res) => {
+        res.sendFile(require('path').join(__dirname, 'permission-center', 'dashboard.js'));
+    });
 app.get('/dashboard', (req, res) => {
     res.send(`<!DOCTYPE html>
 <html lang="es">
