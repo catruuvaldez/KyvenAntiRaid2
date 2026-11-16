@@ -43,6 +43,11 @@
         async function pcLoadGuild() {
             const guildId = document.getElementById('pcGuild')?.value;
             if (!guildId) return;
+            if (typeof pc2 !== 'undefined' && pc2.changed &&
+                !confirm('Hay permisos sin guardar. ¿Descartar cambios y recargar desde Discord?')) {
+                if (pc2.guildId !== guildId) document.getElementById('pcGuild').value = pc2.guildId;
+                return;
+            }
             pcSetStatus('Sincronizando Discord...');
             try {
                 pcData = await pcRequest('/api/permission-center/' + encodeURIComponent(guildId));
@@ -51,6 +56,7 @@
                 document.getElementById('pcBotPerms').textContent = (pcData.bot.canManageRoles ? 'Roles ✓' : 'Roles ✕') + ' / ' + (pcData.bot.canManageChannels ? 'Canales ✓' : 'Canales ✕');
                 pcRenderRoles(); pcRenderChannels();
                 pcSetStatus('Sincronizado · ' + pcData.guild.name);
+                if (typeof pc2OnGuildLoaded === 'function') pc2OnGuildLoaded();
             } catch (e) { pcSetStatus(e.message, true); }
         }
         function pcRenderRoles() {
@@ -135,19 +141,30 @@
             document.getElementById('pcDetailTitle').textContent='Canal · '+c.name;
             document.getElementById('pcDetail').innerHTML=`
                 <label>Nombre<input id="pcChannelName" class="input-field no-icon" value="${escaparHtml(c.name)}"></label>
-                ${c.type===0?`<label style="display:block;margin-top:10px;">Tema<textarea id="pcChannelTopic" class="input-field no-icon">${escaparHtml(c.topic||'')}</textarea></label>`:''}
+                ${[0,5,15,16].includes(c.type)?`<label style="display:block;margin-top:10px;">Tema<textarea id="pcChannelTopic" class="input-field no-icon">${escaparHtml(c.topic||'')}</textarea></label>`:''}
                 ${c.type!==4?`<label style="display:block;margin-top:10px;">Categoría<select id="pcChannelParent" class="select-pro" style="width:100%;margin-top:5px;"><option value="">Sin categoría</option>${parentOptions}</select></label>`:''}
+                ${[0,5,15,16].includes(c.type) && c.rateLimitPerUser!==null ? `<label style="display:block;margin-top:10px;">Modo lento (segundos, 0 para desactivar)<input id="pcChannelSlow" type="number" min="0" max="21600" class="input-field no-icon" value="${c.rateLimitPerUser||0}"></label>`:''}
+                ${c.type!==4 && c.nsfw!==undefined && [0,5,15,16].includes(c.type) ? `<label style="display:flex;gap:8px;align-items:center;margin:10px 0;"><input id="pcChannelNsfw" type="checkbox" ${c.nsfw?'checked':''}> Canal NSFW</label>`:''}
+                ${[2,13].includes(c.type) && c.userLimit!==null ? `<label style="display:block;margin-top:10px;">Límite de usuarios de voz<input id="pcChannelUserLimit" type="number" min="0" max="99" class="input-field no-icon" value="${c.userLimit||0}"></label>`:''}
+                ${[2,13].includes(c.type) && c.bitrate!==null ? `<label style="display:block;margin-top:10px;">Bitrate (bps)<input id="pcChannelBitrate" type="number" min="8000" max="384000" step="1000" class="input-field no-icon" value="${c.bitrate||64000}"></label>`:''}
+
                 <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
                     <button class="btn-primary" style="width:auto;" onclick="pcSaveChannel('${c.id}')">Guardar canal</button>
-                    <button class="btn-secondary" onclick="pcEditOverwrite('${c.id}')">Permisos por rol</button>
+                    <button class="btn-secondary" onclick="pc2SelectChannel('${c.id}');document.getElementById('pc2Workspace').scrollIntoView({behavior:'smooth'})">Editor visual</button>
+                    ${c.parentId ? `<button class="btn-secondary" onclick="pc2SyncCategory('${c.id}')">Sincronizar con categoría</button>` : ''}
                     <button class="btn-danger-ghost" onclick="pcDeleteChannel('${c.id}')">Eliminar</button>
                 </div>`;
             pcRenderChannels();
+            if (typeof pc2SelectChannel === 'function') pc2SelectChannel(id);
         }
         async function pcSaveChannel(id) {
             const body={name:document.getElementById('pcChannelName').value};
             const topic=document.getElementById('pcChannelTopic');if(topic)body.topic=topic.value;
             const parent=document.getElementById('pcChannelParent');if(parent)body.parentId=parent.value;
+            const slow=document.getElementById('pcChannelSlow');if(slow)body.rateLimitPerUser=Number(slow.value);
+            const nsfw=document.getElementById('pcChannelNsfw');if(nsfw)body.nsfw=nsfw.checked;
+            const userLimit=document.getElementById('pcChannelUserLimit');if(userLimit)body.userLimit=Number(userLimit.value);
+            const bitrate=document.getElementById('pcChannelBitrate');if(bitrate)body.bitrate=Number(bitrate.value);
             if(!confirm('Aplicar los cambios a este canal?'))return;
             try{await pcRequest(`/api/permission-center/${pcData.guild.id}/channels/${id}`,{method:'PATCH',body:JSON.stringify(body)});await pcLoadGuild();}
             catch(e){alert(e.message);}

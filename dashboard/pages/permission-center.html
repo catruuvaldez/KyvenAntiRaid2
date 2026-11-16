@@ -37,6 +37,74 @@
                         <input id="pcChannelSearch" class="input-field no-icon" placeholder="Buscar canal o categoría..." oninput="pcRenderChannels()" style="margin:10px 0;width:100%;">
                         <div id="pcChannelsList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;"></div>
                     </div>
+                    <!-- Editor visual de sobrescrituras de canal: los permisos no se envían hasta confirmar. -->
+                    <div id="pc2Workspace" class="section-card pc2-workspace">
+                        <div class="pc2-heading">
+                            <div><h2>Editor visual de permisos</h2><p>Selecciona un canal o categoría, un rol o usuario y ajusta sus permisos.</p></div>
+                            <span id="pc2DraftStatus" class="pc2-draft-status">Sin cambios</span>
+                        </div>
+                        <div class="pc2-toolbar">
+                            <button class="btn-secondary" onclick="pc2CopyTarget()">⧉ Copiar permisos</button>
+                            <button class="btn-secondary" onclick="pc2PasteTarget()">▣ Pegar permisos</button>
+                            <button class="btn-secondary" onclick="pc2CopyChannel()">⧉ Copiar canal</button>
+                            <button class="btn-secondary" onclick="pc2PasteChannel()">▣ Pegar canal</button>
+                            <button class="btn-secondary" onclick="pc2MakePrivate()">🔒 Hacer privado</button>
+                            <button class="btn-secondary" onclick="pc2Discard()">Descartar</button>
+                        </div>
+                        <div class="pc2-grid">
+                            <div class="pc2-column"><h3>1. Canales y categorías</h3>
+                                <input class="input-field no-icon" id="pc2ChannelSearch" placeholder="Buscar canal..." oninput="pc2RenderChannels()" />
+                                <div id="pc2ChannelList" class="pc2-scroll">Selecciona un servidor.</div>
+                            </div>
+                            <div class="pc2-column"><h3>2. Roles y usuarios</h3>
+                                <div id="pc2Targets" class="pc2-scroll">Selecciona un canal.</div>
+                                <label class="pc2-label">Añadir rol
+                                    <select class="select-pro" id="pc2AddRole"><option value="">Selecciona un rol</option></select>
+                                </label>
+                                <button class="btn-secondary pc2-full" onclick="pc2AddRole()">+ Añadir rol</button>
+                                <label class="pc2-label">Buscar usuario (nombre o ID)
+                                    <input class="input-field no-icon" id="pc2MemberQuery" placeholder="Nombre o ID Discord" />
+                                </label>
+                                <button class="btn-secondary pc2-full" onclick="pc2SearchMembers()">Buscar miembro</button>
+                                <div id="pc2MemberResults" class="pc2-results"></div>
+                            </div>
+                            <div class="pc2-column pc2-permission-column"><h3>3. Configurar permisos</h3>
+                                <p class="pc2-muted" id="pc2SelectedTarget">Selecciona un rol o usuario.</p>
+                                <input class="input-field no-icon" id="pc2FlagSearch" placeholder="Buscar permiso..." oninput="pc2RenderFlags()" />
+                                <div id="pc2Flags" class="pc2-scroll pc2-flags">Los permisos aparecen aquí.</div>
+                                <button class="btn-danger-ghost pc2-full" onclick="pc2RemoveTarget()">Quitar sobrescritura seleccionada</button>
+                            </div>
+                        </div>
+                        <div class="pc2-footer">
+                            <p id="pc2Help">❌ Denegar · ➖ Neutral (sin sobrescritura) · ✅ Permitir</p>
+                            <button class="btn-primary" onclick="pc2PreviewSingle()">Revisar y guardar cambios</button>
+                        </div>
+                        <div id="pc2Review" class="pc2-review" hidden></div>
+                    </div>
+                    <div class="section-card pc2-workspace pc2-template-area">
+                        <div class="pc2-heading"><div><h2>Plantillas y aplicación múltiple</h2>
+                            <p>Reutiliza permisos en otros canales. Ningún cambio se aplica sin una vista previa y confirmación.</p></div></div>
+                        <div class="pc2-template-controls">
+                            <label class="pc2-label">Plantilla guardada
+                                <select class="select-pro" id="pc2TemplateSelect" onchange="pc2HideReview()"><option value="">Selecciona una plantilla</option></select>
+                            </label>
+                            <button class="btn-secondary" onclick="pc2SaveTemplate()">Guardar plantilla</button>
+                            <button class="btn-secondary" onclick="pc2RenameTemplate()">Renombrar</button>
+                            <button class="btn-danger-ghost" onclick="pc2DeleteTemplate()">Eliminar</button>
+                        </div>
+                        <p class="pc2-muted">Marca los canales de destino en la primera columna. Usa una plantilla guardada o copia directamente otro canal o categoría con «Copiar canal».</p>
+                        <div class="pc2-template-controls">
+                            <label class="pc2-label">Modo de pegado
+                                <select class="select-pro" id="pc2BatchMode" onchange="pc2HideReview()">
+                                    <option value="merge">Combinar permisos establecidos (mantener el resto)</option>
+                                    <option value="replace-selected">Reemplazar los roles/usuarios incluidos (mantener otros)</option>
+                                    <option value="replace-all">Reemplazar TODOS los permisos del canal (riesgo)</option>
+                                </select>
+                            </label>
+                            <button class="btn-primary" onclick="pc2PreviewBatch()">Revisar y aplicar a destinos</button>
+                        </div>
+                        <p class="pc2-muted">Las plantillas se guardan por servidor. Los roles y usuarios deben existir en el servidor de destino. Los cambios masivos pueden quedar parcialmente aplicados si Discord rechaza una operación.</p>
+                    </div>
                     <div class="section-card" style="padding:14px;margin-top:16px;border-color:rgba(245,158,11,.3);">
                         <strong style="color:#fbbf24;">Protecciones activas</strong>
                         <p style="color:var(--text-secondary);margin-top:5px;">Los cambios se aplican solo después de confirmarlos. El bot no puede editar roles administrados ni roles situados por encima de su jerarquía. La eliminación de roles y canales es irreversible desde Discord.</p>

@@ -126,6 +126,7 @@ function registerPermissionCenterApi(app, deps) {
                     canManageChannels: me.permissions.has(FLAGS.ManageChannels)
                 },
                 permissions: FLAG_NAMES,
+                channelPermissions: require('./workspace').CHANNEL_PERMISSIONS,
                 roles: guild.roles.cache.sort((a,b) => b.position - a.position).map(r => ({
                     id: r.id, name: r.name, color: r.hexColor, position: r.position,
                     managed: r.managed, hoist: r.hoist, mentionable: r.mentionable,
@@ -133,7 +134,9 @@ function registerPermissionCenterApi(app, deps) {
                 })),
                 channels: guild.channels.cache.sort((a,b) => (a.rawPosition || 0) - (b.rawPosition || 0)).map(c => ({
                     id: c.id, name: c.name, type: c.type, parentId: c.parentId || null,
-                    position: c.rawPosition || 0, topic: c.topic || '',
+                    position: c.rawPosition || 0, topic: c.topic || '', permissionsLocked: c.permissionsLocked ?? null,
+                    nsfw: Boolean(c.nsfw), rateLimitPerUser: c.rateLimitPerUser ?? null,
+                    userLimit: c.userLimit ?? null, bitrate: c.bitrate ?? null,
                     overwrites: c.permissionOverwrites.cache.map(o => ({
                         id: o.id, type: o.type, allow: o.allow.toArray(), deny: o.deny.toArray()
                     }))
@@ -223,7 +226,29 @@ function registerPermissionCenterApi(app, deps) {
                 if (typeof b.name !== 'string' || !/^[\w\-áéíóúñ ]{1,100}$/i.test(b.name)) return res.status(400).json({ error: 'Nombre no válido.' });
                 edit.name = b.name.trim();
             }
-            if (b.topic !== undefined && channel.isTextBased()) edit.topic = String(b.topic).slice(0, 1024);
+            if (b.topic !== undefined && 'topic' in channel) {
+                if (typeof b.topic !== 'string' || b.topic.length > 1024) return res.status(400).json({ error: 'Tema del canal no válido.' });
+                edit.topic = b.topic;
+            }
+            if (b.nsfw !== undefined) {
+                if (typeof b.nsfw !== 'boolean' || !('nsfw' in channel)) return res.status(400).json({ error: 'NSFW no es compatible con este canal.' });
+                edit.nsfw = b.nsfw;
+            }
+            if (b.rateLimitPerUser !== undefined) {
+                if (!Number.isInteger(b.rateLimitPerUser) || b.rateLimitPerUser < 0 || b.rateLimitPerUser > 21600 || !('rateLimitPerUser' in channel))
+                    return res.status(400).json({ error: 'Modo lento no válido para este canal.' });
+                edit.rateLimitPerUser = b.rateLimitPerUser;
+            }
+            if (b.userLimit !== undefined) {
+                if (!Number.isInteger(b.userLimit) || b.userLimit < 0 || b.userLimit > 99 || !('userLimit' in channel))
+                    return res.status(400).json({ error: 'Límite de usuarios no válido para este canal.' });
+                edit.userLimit = b.userLimit;
+            }
+            if (b.bitrate !== undefined) {
+                if (!Number.isInteger(b.bitrate) || b.bitrate < 8000 || b.bitrate > 384000 || !('bitrate' in channel))
+                    return res.status(400).json({ error: 'Bitrate no válido para este canal.' });
+                edit.bitrate = b.bitrate;
+            }
             if (b.parentId !== undefined) {
                 if (b.parentId && (!guild.channels.cache.has(b.parentId) || guild.channels.cache.get(b.parentId).type !== require('discord.js').ChannelType.GuildCategory)) return res.status(400).json({ error: 'Categoría no válida.' });
                 edit.parent = b.parentId || null;
@@ -245,6 +270,9 @@ function registerPermissionCenterApi(app, deps) {
             res.json({ ok: true });
         } catch (e) { res.status(400).json({ error: e.message || 'No se pudo eliminar el canal.' }); }
     });
+
+    // New copy/paste, template and batch-preview endpoints. Existing routes are preserved.
+    require('./workspace').registerPermissionWorkspace(app, { auth, getGuild, audit });
 
     app.put('/api/permission-center/:guildId/channels/:channelId/permissions', auth, async (req, res) => {
         try {
