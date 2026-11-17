@@ -10,12 +10,14 @@
     <!-- Fuentes: Syne (Catruu), Rubik Bubbles / Fredoka (estilo Discord Toon para Im,Catri) e Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Inter:wght@400;600;700&family=Rubik+Bubbles&family=Syne:wght@700;800&display=swap" rel="stylesheet">
     <style>
-        * {
+        /* Cursor personalizado (.cur) aplicado a toda la página y elementos interactivos */
+        *, html, body, a, i, button, #enter-screen, .location-row, .discord-box, .views-counter, .progress-bar-bg {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Inter', sans-serif;
             user-select: none;
+            cursor: url('https://files.catbox.moe/eiz2nf.cur'), auto !important;
         }
 
         body, html {
@@ -37,7 +39,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
             transition: opacity 0.7s ease;
         }
 
@@ -100,7 +101,7 @@
             inset: 0;
             background: radial-gradient(
                 450px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-                rgba(255, 255, 255, 0.10),
+                rgba(255, 255, 255, 0.11),
                 transparent 45%
             );
             opacity: 0;
@@ -114,10 +115,10 @@
         }
 
         .tilt-card:hover {
-            border-color: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.22);
         }
 
-        /* Tarjeta Principal (Un poquito más transparente: 0.22 y blur 8px) */
+        /* Tarjeta Principal */
         .profile-card {
             width: 100%;
             max-width: 550px;
@@ -133,7 +134,7 @@
             box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45);
         }
 
-        /* Imagen del medio fija (xobhu9.png) */
+        /* Imagen del medio fija con efecto al pasar el mouse */
         .main-avatar {
             width: 96px;
             height: 96px;
@@ -143,6 +144,14 @@
             margin-bottom: 12px;
             box-shadow: 0 0 24px rgba(0, 0, 0, 0.65);
             transform: translateZ(30px);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+            z-index: 2;
+        }
+
+        .main-avatar:hover {
+            transform: translateZ(38px) scale(1.08);
+            border-color: rgba(255, 255, 255, 0.7);
+            box-shadow: 0 0 22px rgba(255, 255, 255, 0.6);
         }
 
         /* Contenedor de nombre con chispas blancas */
@@ -154,6 +163,7 @@
             padding: 4px 18px;
             margin-bottom: 2px;
             transform: translateZ(40px);
+            z-index: 2;
         }
 
         .title-glow {
@@ -169,6 +179,15 @@
             line-height: 1.1;
             position: relative;
             z-index: 2;
+            transition: transform 0.22s ease, text-shadow 0.22s ease;
+        }
+
+        .name-sparkle-wrap:hover .title-glow {
+            transform: scale(1.06);
+            text-shadow: 
+                0 0 16px rgba(255, 255, 255, 1),
+                0 0 34px rgba(255, 255, 255, 0.85),
+                0 0 55px rgba(168, 85, 247, 0.75);
         }
 
         .sparkle-particle {
@@ -197,24 +216,40 @@
             text-transform: uppercase;
             margin-bottom: 18px;
             transform: translateZ(25px);
-        }
-
-        /* Mini tarjeta redondeada de Discord */
-        .discord-box {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            background: rgba(18, 18, 22, 0.42);
-            border: 1px solid rgba(255, 255, 255, 0.11);
-            padding: 12px 18px;
-            border-radius: 16px;
-            margin-bottom: 12px;
-            min-width: 280px;
-            transform: translateZ(28px);
+            transition: transform 0.22s ease, text-shadow 0.22s ease, color 0.22s ease;
             z-index: 2;
         }
 
-        /* Contenedor del Avatar con el Simbionte / Venom alrededor */
+        .subtitle:hover {
+            transform: translateZ(30px) scale(1.06);
+            color: #ffffff;
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.9);
+        }
+
+        /* Mini tarjeta redondeada de Discord con reacción al pasar el mouse */
+        .discord-box {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: rgba(18, 18, 22, 0.42);
+            border: 1px solid rgba(255, 255, 255, 0.11);
+            padding: 13px 20px;
+            border-radius: 16px;
+            margin-bottom: 12px;
+            min-width: 285px;
+            transform: translateZ(28px);
+            z-index: 2;
+            transition: transform 0.22s ease, background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+        }
+
+        .discord-box:hover {
+            transform: translateZ(34px) scale(1.03) translateY(-2px);
+            background: rgba(28, 28, 34, 0.56);
+            border-color: rgba(255, 255, 255, 0.28);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 255, 255, 0.1);
+        }
+
+        /* Contenedor del Avatar con el marco PNG de Venom (38e150.png) */
         .discord-avatar-wrap {
             position: relative;
             width: 52px;
@@ -234,22 +269,23 @@
             z-index: 2;
         }
 
-        /* Marco de Venom / Simbionte idéntico a la imagen 2 */
-        .venom-ring {
+        /* Tu marco oficial de Venom (https://files.catbox.moe/38e150.png) */
+        .venom-frame-overlay {
             position: absolute;
-            inset: -11px;
-            width: 74px;
-            height: 74px;
+            top: 50%;
+            left: 50%;
+            width: 68px;
+            height: 68px;
+            transform: translate(-50%, -50%);
+            object-fit: contain;
             pointer-events: none;
             z-index: 3;
-            filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.95));
-            animation: symbiontPulse 3.6s ease-in-out infinite alternate;
+            filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.85));
+            transition: transform 0.25s ease;
         }
 
-        @keyframes symbiontPulse {
-            0% { transform: scale(0.98) rotate(0deg); }
-            50% { transform: scale(1.03) rotate(2deg); }
-            100% { transform: scale(0.99) rotate(-2deg); }
+        .discord-box:hover .venom-frame-overlay {
+            transform: translate(-50%, -50%) scale(1.06);
         }
 
         .status-dot {
@@ -277,7 +313,7 @@
             gap: 7px;
         }
 
-        /* Estilo de fuente y efecto "Dibujo animado" en blanco de Discord para Im,Catri */
+        /* Estilo de fuente "Dibujo animado" en blanco de Discord para Im,Catri */
         .discord-toon-nick {
             font-family: 'Rubik Bubbles', 'Fredoka', cursive, sans-serif;
             font-size: 1.02rem;
@@ -317,6 +353,13 @@
             align-items: center;
             gap: 4px;
             font-weight: 600;
+            transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .clan-tag:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
         }
 
         .discord-activity {
@@ -329,25 +372,34 @@
             text-overflow: ellipsis;
         }
 
-        /* Ubicación debajo del rectángulo redondeado: Pin + Argentina + Bandera */
+        /* Ubicación con el mismo efecto de selección/brillo que los iconos al pasar el mouse */
         .location-row {
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 7px;
-            font-size: 0.82rem;
+            font-size: 0.84rem;
             font-weight: 600;
             color: rgba(255, 255, 255, 0.88);
             margin-bottom: 18px;
-            transform: translateZ(26px);
+            padding: 5px 12px;
+            border-radius: 10px;
+            transform: translateZ(28px);
             z-index: 2;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.35));
+            transition: transform 0.22s ease, filter 0.22s ease, color 0.22s ease, background 0.22s ease;
+        }
+
+        .location-row:hover {
+            transform: translateZ(34px) scale(1.15) translateY(-2px);
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+            filter: drop-shadow(0 0 14px rgba(255, 255, 255, 1));
         }
 
         .location-row i {
             color: #ffffff;
-            font-size: 0.85rem;
-            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.6));
+            font-size: 0.88rem;
         }
 
         .ar-flag {
@@ -380,7 +432,7 @@
             filter: drop-shadow(0 0 14px rgba(255, 255, 255, 1));
         }
 
-        /* Contador de vistas reales */
+        /* Contador de vistas reales con efecto de selección al pasar el mouse */
         .views-counter {
             position: absolute;
             bottom: 14px;
@@ -391,11 +443,19 @@
             font-size: 0.8rem;
             font-weight: 600;
             color: rgba(255, 255, 255, 0.85);
-            transform: translateZ(20px);
+            transform: translateZ(24px);
             z-index: 2;
+            transition: transform 0.22s ease, filter 0.22s ease, color 0.22s ease;
+            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.35));
         }
 
-        /* Barra Reproductor Inferior (Un poquito más transparente: 0.22 y blur 8px) */
+        .views-counter:hover {
+            transform: translateZ(30px) scale(1.15) translateY(-2px);
+            color: #ffffff;
+            filter: drop-shadow(0 0 14px rgba(255, 255, 255, 1));
+        }
+
+        /* Barra Reproductor Inferior */
         .music-player {
             width: 100%;
             max-width: 550px;
@@ -424,6 +484,12 @@
             border: 1px solid rgba(255, 255, 255, 0.14);
             transform: translateZ(20px);
             z-index: 2;
+            transition: transform 0.22s ease, box-shadow 0.22s ease;
+        }
+
+        .album-cover:hover {
+            transform: translateZ(28px) scale(1.12);
+            box-shadow: 0 0 14px rgba(255, 255, 255, 0.7);
         }
 
         .album-cover img {
@@ -445,6 +511,11 @@
             font-size: 0.82rem;
             font-weight: 700;
             letter-spacing: 0.5px;
+            transition: text-shadow 0.2s ease;
+        }
+
+        .track-title:hover {
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
         }
 
         .progress-row {
@@ -461,7 +532,12 @@
             background: rgba(255, 255, 255, 0.22);
             border-radius: 4px;
             overflow: hidden;
-            cursor: pointer;
+            transition: height 0.15s ease, box-shadow 0.2s ease;
+        }
+
+        .progress-bar-bg:hover {
+            height: 5px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
         }
 
         .progress-bar-fill {
@@ -482,13 +558,13 @@
         }
 
         .player-controls i {
-            cursor: pointer;
-            transition: color 0.2s, transform 0.15s;
+            transition: color 0.2s, transform 0.2s, filter 0.2s;
         }
 
         .player-controls i:hover {
             color: #fff;
-            transform: scale(1.12);
+            transform: scale(1.2) translateY(-1px);
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 1));
         }
     </style>
 </head>
@@ -524,33 +600,10 @@
             <!-- Rectángulo redondeado de Im,Catri -->
             <div class="discord-box">
                 <div class="discord-avatar-wrap">
-                    <!-- Imagen 0lba8z.png fija que pediste para el cuadro de Im,Catri -->
+                    <!-- Foto de perfil del cuadro Im,Catri -->
                     <img id="dc-avatar" class="dc-user-img" src="https://files.catbox.moe/0lba8z.png" alt="Discord">
-                    
-                    <!-- Efecto Simbionte / Venom idéntico a tu captura 2 alrededor del círculo -->
-                    <svg class="venom-ring" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <filter id="venom-goo" x="-25%" y="-25%" width="150%" height="150%">
-                                <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="4" result="noise" seed="5"/>
-                                <feDisplacementMap in="SourceGraphic" in2="noise" scale="9" xChannelSelector="R" yChannelSelector="G"/>
-                            </filter>
-                        </defs>
-                        <!-- Base negra orgánica de tentáculos hacia adentro y afuera -->
-                        <g filter="url(#venom-goo)">
-                            <circle cx="60" cy="60" r="39" fill="none" stroke="#050507" stroke-width="11" stroke-dasharray="5 3 9 2 4 4"/>
-                            <circle cx="60" cy="60" r="44" fill="none" stroke="#08080c" stroke-width="6" stroke-dasharray="2 8 4 6 1 9"/>
-                            <circle cx="60" cy="60" r="34" fill="none" stroke="#050507" stroke-width="5" stroke-dasharray="1 7 3 5 2 8"/>
-                            <!-- Tentáculos largos puntiagudos -->
-                            <path d="M60,8 L57,24 M60,112 L63,96 M8,60 L24,57 M112,60 L96,63 M22,22 L35,35 M98,22 L85,35 M22,98 L35,85 M98,98 L85,85 M38,11 L45,27 M82,11 L75,27 M11,38 L27,45 M109,38 L93,45 M11,82 L27,75 M109,82 L93,75 M38,109 L45,93 M82,109 L75,93" stroke="#050507" stroke-width="3.2" stroke-linecap="round"/>
-                        </g>
-                        <!-- Brillos blancos líquidos tipo Venom sobre el simbionte negro -->
-                        <g filter="url(#venom-goo)" opacity="0.92">
-                            <circle cx="60" cy="60" r="39.5" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-dasharray="2 14 4 18 1 12" stroke-linecap="round"/>
-                            <circle cx="60" cy="60" r="43" fill="none" stroke="#e4e4e7" stroke-width="1.5" stroke-dasharray="1 20 3 16 2 22" stroke-linecap="round"/>
-                            <circle cx="60" cy="60" r="35.5" fill="none" stroke="#ffffff" stroke-width="1.3" stroke-dasharray="1 18 2 14 1 20" stroke-linecap="round"/>
-                        </g>
-                    </svg>
-
+                    <!-- Marco oficial de Venom superpuesto (38e150.png) -->
+                    <img class="venom-frame-overlay" src="https://files.catbox.moe/38e150.png" alt="Venom Frame">
                     <div id="dc-status" class="status-dot"></div>
                 </div>
 
@@ -564,8 +617,8 @@
                 </div>
             </div>
 
-            <!-- Ubicación debajo del rectángulo redondeado -->
-            <div class="location-row">
+            <!-- Ubicación interactiva debajo del rectángulo redondeado -->
+            <div class="location-row" title="Ubicación: Argentina">
                 <i class="fa-solid fa-location-dot"></i>
                 <span>Argentina</span>
                 <img class="ar-flag" src="https://flagcdn.com/w40/ar.png" alt="Argentina">
@@ -585,7 +638,7 @@
             </div>
 
             <!-- Contador de vistas reales por IP -->
-            <div class="views-counter">
+            <div class="views-counter" title="Visitas únicas">
                 <i class="fa-regular fa-eye"></i>
                 <span id="view-count">1</span>
             </div>
@@ -738,7 +791,7 @@
             progressFill.style.width = `${percent || 0}%`;
         });
 
-        // --- 5. Cargar Estado de Discord en vivo (manteniendo tu imagen 0lba8z.png fija) ---
+        // --- 5. Cargar Estado de Discord en vivo ---
         async function fetchDiscordStatus() {
             try {
                 const res = await fetch('/api/catruu-status');
