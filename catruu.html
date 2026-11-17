@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@Catruu</title>
+    <title>@</title>
+    <!-- Icono KV en la pestaña del navegador -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230c0c10' stroke='%23a855f7' stroke-width='6'/><text x='50%' y='55%' dominant-baseline='middle' text-anchor='middle' fill='%23a855f7' font-family='Arial, sans-serif' font-weight='900' font-size='52'>KV</text></svg>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
@@ -52,7 +54,7 @@
             50% { opacity: 1; }
         }
 
-        /* Video de fondo desde Catbox */
+        /* Video de fondo (muteado para que suene limpio el MP3) */
         #bg-video {
             position: fixed;
             top: 50%;
@@ -251,9 +253,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2rem;
-            color: #fff;
             flex-shrink: 0;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .album-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .track-details {
@@ -317,17 +325,22 @@
         <span>click to enter...</span>
     </div>
 
-    <!-- Video de fondo (con sonido incluido desde tu link de Catbox) -->
-    <video id="bg-video" loop playsinline preload="auto">
+    <!-- Video de fondo (muteado porque el audio viene del MP3) -->
+    <video id="bg-video" loop muted playsinline preload="auto">
         <source src="https://files.catbox.moe/njkp5q.mp4" type="video/mp4">
     </video>
+
+    <!-- Audio MP3 de tu link de Catbox -->
+    <audio id="bg-audio" loop preload="auto">
+        <source src="https://files.catbox.moe/yu0f1s.mp3" type="audio/mpeg">
+    </audio>
 
     <div class="main-wrapper">
         <div class="profile-card">
             <img id="top-avatar" class="main-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Avatar">
             
-            <h1 class="title-glow">ENROLA</h1>
-            <p class="subtitle">CATRUU</p>
+            <h1 class="title-glow">CATRUU</h1>
+            <p class="subtitle">KYVEN STORE</p>
 
             <div class="discord-box">
                 <div class="discord-avatar-wrap">
@@ -343,7 +356,7 @@
                 </div>
             </div>
 
-            <!-- Tus redes sociales -->
+            <!-- Redes sociales -->
             <div class="social-links">
                 <a href="https://discord.gg/TU_SERVIDOR" target="_blank" title="Discord"><i class="fa-brands fa-discord"></i></a>
                 <a href="https://tiktok.com/@TU_USUARIO" target="_blank" title="TikTok"><i class="fa-brands fa-tiktok"></i></a>
@@ -356,10 +369,10 @@
             </div>
         </div>
 
-        <!-- Barra reproductora sincronizada con el video -->
+        <!-- Barra reproductora con tu foto a la izquierda -->
         <div class="music-player">
             <div class="album-cover">
-                <i class="fa-solid fa-music"></i>
+                <img src="https://files.catbox.moe/2j0e1z.jpg" alt="Cover">
             </div>
             <div class="track-details">
                 <div class="track-title">AMANECE</div>
@@ -380,47 +393,78 @@
     </div>
 
     <script>
+        // --- Animación del título de la pestaña (@C -> @CA -> @CATRUU) ---
+        const tabWord = "CATRUU";
+        let charIndex = 0;
+        let isDeleting = false;
+
+        function animateTabTitle() {
+            // El @ siempre queda fijo, solo cambia lo que le sigue
+            document.title = "@" + tabWord.substring(0, charIndex);
+
+            let speed = isDeleting ? 220 : 320;
+
+            if (!isDeleting && charIndex === tabWord.length) {
+                speed = 1100; // Pausa cuando llega a @CATRUU
+                isDeleting = true;
+            } else if (isDeleting && charIndex === 0) {
+                speed = 400; // Pausa cuando queda solo @
+                isDeleting = false;
+            }
+
+            charIndex += isDeleting ? -1 : 1;
+            setTimeout(animateTabTitle, speed);
+        }
+        animateTabTitle();
+
+        // --- Controles de Video y Música ---
         const enterScreen = document.getElementById('enter-screen');
         const video = document.getElementById('bg-video');
+        const audio = document.getElementById('bg-audio');
         const playPauseBtn = document.getElementById('play-pause-btn');
         const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
         const progressContainer = document.getElementById('progress-container');
         const progressFill = document.getElementById('progress-fill');
         const currentTimeEl = document.getElementById('current-time');
         const totalTimeEl = document.getElementById('total-time');
 
-        video.volume = 0.45;
+        audio.volume = 0.45;
 
-        // Entrar y activar el video con audio
+        // Entrar y reproducir video de fondo + canción MP3
         enterScreen.addEventListener('click', () => {
             enterScreen.style.opacity = '0';
             setTimeout(() => enterScreen.style.display = 'none', 600);
-            video.muted = false;
             video.play();
+            audio.play();
         });
 
-        // Pausar / Reproducir desde la barra inferior
+        // Pausar / Reproducir canción desde la barra inferior
         playPauseBtn.addEventListener('click', () => {
-            if (video.paused) {
-                video.play();
+            if (audio.paused) {
+                audio.play();
                 playPauseBtn.className = 'fa-solid fa-pause';
             } else {
-                video.pause();
+                audio.pause();
                 playPauseBtn.className = 'fa-solid fa-play';
             }
         });
 
-        // Reiniciar canción/video con el botón atrás
+        // Reiniciar canción con botón atrás o adelante
         prevBtn.addEventListener('click', () => {
-            video.currentTime = 0;
+            audio.currentTime = 0;
+        });
+
+        nextBtn.addEventListener('click', () => {
+            audio.currentTime = 0;
         });
 
         // Adelantar haciendo clic en la barra de progreso
         progressContainer.addEventListener('click', (e) => {
             const rect = progressContainer.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
-            if (video.duration) {
-                video.currentTime = (clickX / rect.width) * video.duration;
+            if (audio.duration) {
+                audio.currentTime = (clickX / rect.width) * audio.duration;
             }
         });
 
@@ -431,17 +475,17 @@
             return `${m}:${s < 10 ? '0' : ''}${s}`;
         }
 
-        video.addEventListener('loadedmetadata', () => {
-            totalTimeEl.textContent = formatTime(video.duration);
+        audio.addEventListener('loadedmetadata', () => {
+            totalTimeEl.textContent = formatTime(audio.duration);
         });
 
-        video.addEventListener('timeupdate', () => {
-            currentTimeEl.textContent = formatTime(video.currentTime);
-            const percent = (video.currentTime / video.duration) * 100;
+        audio.addEventListener('timeupdate', () => {
+            currentTimeEl.textContent = formatTime(audio.currentTime);
+            const percent = (audio.currentTime / audio.duration) * 100;
             progressFill.style.width = `${percent || 0}%`;
         });
 
-        // Cargar estado de Discord desde la caché del bot (cada 60s para cuidar Render Free)
+        // Cargar estado de Discord desde la caché del bot
         async function fetchDiscordStatus() {
             try {
                 const res = await fetch('/api/catruu-status');
