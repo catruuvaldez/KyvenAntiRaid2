@@ -3,7 +3,30 @@
 const fs = require('fs');
 const path = require('path');
 
-let visitasCatruu = 240;
+// Contador real filtrado por IP y guardado en archivo para no perderse
+const viewsFilePath = path.join(__dirname, '..', '..', 'catruu-views.json');
+let ipsVistas = new Set();
+
+try {
+    if (fs.existsSync(viewsFilePath)) {
+        const saved = JSON.parse(fs.readFileSync(viewsFilePath, 'utf8'));
+        if (Array.isArray(saved)) ipsVistas = new Set(saved);
+    }
+} catch (e) {}
+
+function registrarVistaPorIP(req) {
+    const rawIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+    if (rawIp && !ipsVistas.has(rawIp)) {
+        ipsVistas.add(rawIp);
+        try {
+            fs.writeFileSync(viewsFilePath, JSON.stringify([...ipsVistas]), 'utf8');
+        } catch (e) {}
+    }
+    return ipsVistas.size;
+}
+
+// Caché de 30s para proteger Render Free pero mostrar datos 100% reales
+let discordCache = { data: null, lastFetch: 0 };
 
 function registerDashboardPage(app, dependencies = {}) {
     const { client, OWNER_ID, rootDir } = dependencies;
@@ -22,45 +45,79 @@ function registerDashboardPage(app, dependencies = {}) {
         res.type('html').send(html);
     });
 
-    // --- RUTA PERFIL /Catruu (Estilo guns.lol) ---
+    // --- RUTA PERFIL /Catruu ---
     app.get(['/Catruu', '/catruu'], (req, res) => {
-        visitasCatruu++;
+        registrarVistaPorIP(req);
         const fileRoot = rootDir || path.join(__dirname, '..', '..');
         res.sendFile(path.join(fileRoot, 'catruu.html'));
     });
 
-    // --- API ULTRA LIGERA DE ESTADO DE DISCORD (0 llamadas de red) ---
-    app.get('/api/catruu-status', (req, res) => {
-        const targetId = OWNER_ID || process.env.OWNER_ID || '';
+    // --- API REAL DE DISCORD + VISTAS POR IP ---
+    app.get('/api/catruu-status', async (req, res) => {
+        const totalViews = registrarVistaPorIP(req);
+        const now = Date.now();
+
+        if (discordCache.data && (now - discordCache.lastFetch < 30000)) {
+            return res.json({ ...discordCache.data, views: totalViews });
+        }
+
+        const targetId = (OWNER_ID || process.env.OWNER_ID || '').trim();
         let member = null;
 
-        if (client && client.guilds && targetId) {
-            for (const guild of client.guilds.cache.values()) {
-                member = guild.members.cache.get(targetId);
-                if (member) break;
+        try {
+            if (client && client.isReady()) {
+                for (const guild of client.guilds.cache.values()) {
+                    // 1. Buscar por OWNER_ID si está configurado
+                    if (targetId) {
+                        member = guild.members.cache.get(targetId) || await guild.members.fetch({ user: targetId, withPresences: true }).catch(() => null);
+                    }
+                    // 2. Si no hay OWNER_ID en .env, buscar automáticamente tu usuario "catruuu" o dueño del servidor
+                    if (!member) {
+                        member = guild.members.cache.find(m => m.user.username.toLowerCase() === 'catruuu' || m.user.username.toLowerCase() === 'catruu');
+                    }
+                    if (!member && guild.ownerId) {
+                        member = await guild.members.fetch({ user: guild.ownerId, withPresences: true }).catch(() => null);
+                    }
+                    if (member) break;
+                }
             }
-        }
+        } catch (e) {}
 
-        if (!member) {
-            const user = targetId ? client?.users?.cache?.get(targetId) : null;
-            return res.json({
-                username: user ? user.username : 'catruu',
-                avatar: user ? user.displayAvatarURL({ extension: 'png', size: 256 }) : 'https://cdn.discordapp.com/embed/avatars/0.png',
-                status: 'dnd',
-                activity: 'currently doing nothing',
-                views: visitasCatruu
-            });
-        }
+        if (member) {
+            const presence = member.presence;
+            const status = presence?.status || 'offline';
 
-        const status = member.presence?.status || 'dnd';
-        const customActivity = member.presence?.activities?.find(a => a.type !== 4);
+            // Detectar estado personalizado o juego/actividad actual
+            const customStatus = presence?.activities?.find(a => a.type === 4);
+            const playingActivity = presence?.activities?.find(a => a.type !== 4);
+
+            let activityText = 'currently doing nothing';
+            if (playingActivity) {
+                activityText = `${playingActivity.name}${playingActivity.details ? ` - ${playingActivity.details}` : ''}`;
+            } else if (customStatus && customStatus.state) {
+                activityText = customStatus.state;
+            }
+
+            discordCache = {
+                lastFetch: now,
+                data: {
+                    username: member.user.username,
+                    globalName: member.displayName || member.user.globalName || 'Im,Catri',
+                    avatar: member.user.displayAvatarURL({ extension: 'png', size: 256 }),
+                    status: status,
+                    activity: activityText
+                }
+            };
+            return res.json({ ...discordCache.data, views: totalViews });
+        }
 
         res.json({
-            username: member.user.username,
-            avatar: member.user.displayAvatarURL({ extension: 'png', size: 256 }),
-            status: status,
-            activity: customActivity ? customActivity.name : 'currently doing nothing',
-            views: visitasCatruu
+            username: 'catruuu',
+            globalName: 'Im,Catri',
+            avatar: 'https://files.catbox.moe/1cv7on.png',
+            status: 'dnd',
+            activity: 'currently doing nothing',
+            views: totalViews
         });
     });
 }
