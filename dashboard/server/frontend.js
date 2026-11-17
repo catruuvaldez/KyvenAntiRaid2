@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// Contador real filtrado por IP y guardado en archivo para no perderse
+// Contador real filtrado por IP y guardado en archivo
 const viewsFilePath = path.join(__dirname, '..', '..', 'catruu-views.json');
 let ipsVistas = new Set();
 
@@ -25,7 +25,7 @@ function registrarVistaPorIP(req) {
     return ipsVistas.size;
 }
 
-// Caché de 30s para proteger Render Free pero mostrar datos 100% reales
+// Caché de 25s para proteger Render Free manteniendo datos en tiempo real
 let discordCache = { data: null, lastFetch: 0 };
 
 function registerDashboardPage(app, dependencies = {}) {
@@ -52,42 +52,69 @@ function registerDashboardPage(app, dependencies = {}) {
         res.sendFile(path.join(fileRoot, 'catruu.html'));
     });
 
-    // --- API REAL DE DISCORD + VISTAS POR IP ---
+    // --- API REAL DE DISCORD (Foto, Apodo, Estado) + VISTAS POR IP ---
     app.get('/api/catruu-status', async (req, res) => {
         const totalViews = registrarVistaPorIP(req);
         const now = Date.now();
 
-        if (discordCache.data && (now - discordCache.lastFetch < 30000)) {
+        if (discordCache.data && (now - discordCache.lastFetch < 25000)) {
             return res.json({ ...discordCache.data, views: totalViews });
         }
 
         const targetId = (OWNER_ID || process.env.OWNER_ID || '').trim();
         let member = null;
+        let userObj = null;
 
         try {
             if (client && client.isReady()) {
                 for (const guild of client.guilds.cache.values()) {
-                    // 1. Buscar por OWNER_ID si está configurado
+                    // 1. Si hay OWNER_ID en .env, buscar directo por ID con presencia
                     if (targetId) {
-                        member = guild.members.cache.get(targetId) || await guild.members.fetch({ user: targetId, withPresences: true }).catch(() => null);
+                        member = await guild.members.fetch({ user: targetId, withPresences: true }).catch(() => null);
                     }
-                    // 2. Si no hay OWNER_ID en .env, buscar automáticamente tu usuario "catruuu" o dueño del servidor
+
+                    // 2. Buscar en caché por tu username 'catruuu' o apodo 'Im,Catri'
                     if (!member) {
-                        member = guild.members.cache.find(m => m.user.username.toLowerCase() === 'catruuu' || m.user.username.toLowerCase() === 'catruu');
+                        member = guild.members.cache.find(m =>
+                            m.user.username.toLowerCase().includes('catruu') ||
+                            (m.displayName && m.displayName.toLowerCase().includes('catri')) ||
+                            (m.user.globalName && m.user.globalName.toLowerCase().includes('catri'))
+                        );
                     }
+
+                    // 3. Si no estaba en caché, hacer búsqueda directa en la API del servidor
+                    if (!member) {
+                        const searched = await guild.members.search({ query: 'catru', limit: 5 }).catch(() => null);
+                        if (searched && searched.size > 0) {
+                            const found = searched.first();
+                            member = await guild.members.fetch({ user: found.id, withPresences: true }).catch(() => found);
+                        }
+                    }
+
+                    // 4. Respaldo: traer al dueño del servidor
                     if (!member && guild.ownerId) {
-                        member = await guild.members.fetch({ user: guild.ownerId, withPresences: true }).catch(() => null);
+                        const owner = await guild.members.fetch({ user: guild.ownerId, withPresences: true }).catch(() => null);
+                        if (owner && (owner.user.username.toLowerCase().includes('catr') || !targetId)) {
+                            member = owner;
+                        }
                     }
+
                     if (member) break;
                 }
+
+                if (!member && targetId) {
+                    userObj = await client.users.fetch(targetId, { force: true }).catch(() => null);
+                }
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error('Error leyendo usuario de Discord:', e);
+        }
 
-        if (member) {
-            const presence = member.presence;
-            const status = presence?.status || 'offline';
+        if (member || userObj) {
+            const u = member ? member.user : userObj;
+            const presence = member?.presence;
+            const status = presence?.status || 'dnd';
 
-            // Detectar estado personalizado o juego/actividad actual
             const customStatus = presence?.activities?.find(a => a.type === 4);
             const playingActivity = presence?.activities?.find(a => a.type !== 4);
 
@@ -101,9 +128,9 @@ function registerDashboardPage(app, dependencies = {}) {
             discordCache = {
                 lastFetch: now,
                 data: {
-                    username: member.user.username,
-                    globalName: member.displayName || member.user.globalName || 'Im,Catri',
-                    avatar: member.user.displayAvatarURL({ extension: 'png', size: 256 }),
+                    username: u.username,
+                    displayName: member?.displayName || u.globalName || u.username,
+                    avatar: u.displayAvatarURL({ size: 256 }),
                     status: status,
                     activity: activityText
                 }
@@ -113,8 +140,8 @@ function registerDashboardPage(app, dependencies = {}) {
 
         res.json({
             username: 'catruuu',
-            globalName: 'Im,Catri',
-            avatar: 'https://files.catbox.moe/1cv7on.png',
+            displayName: 'Im,Catri',
+            avatar: 'https://files.catbox.moe/xobhu9.png',
             status: 'dnd',
             activity: 'currently doing nothing',
             views: totalViews

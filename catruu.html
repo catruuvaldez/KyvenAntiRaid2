@@ -4,10 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@</title>
-    <!-- Tu icono personalizado en la pestaña -->
+    <!-- Icono en la pestaña -->
     <link rel="icon" type="image/png" href="https://files.catbox.moe/1cv7on.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- Fuente Syne (estilo Bellini) + Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
     <style>
         * {
@@ -70,6 +69,7 @@
             filter: brightness(0.85);
         }
 
+        /* Contenedor con perspectiva 3D */
         .main-wrapper {
             position: relative;
             z-index: 10;
@@ -79,8 +79,42 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 14px;
+            gap: 16px;
             padding: 20px;
+            perspective: 1100px;
+        }
+
+        /* Clase compartida para el efecto 3D en ambas ventanas transparentes */
+        .tilt-card {
+            transform-style: preserve-3d;
+            transition: transform 0.15s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease;
+            will-change: transform;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Brillo dinámico que sigue al mouse en 3D */
+        .tilt-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(
+                450px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+                rgba(255, 255, 255, 0.12),
+                transparent 45%
+            );
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .tilt-card:hover::before {
+            opacity: 1;
+        }
+
+        .tilt-card:hover {
+            border-color: rgba(255, 255, 255, 0.22);
         }
 
         /* Tarjeta Principal */
@@ -96,30 +130,74 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            position: relative;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.55);
         }
 
+        /* Imagen del medio fija (xobhu9.png) */
         .main-avatar {
-            width: 94px;
-            height: 94px;
+            width: 96px;
+            height: 96px;
             border-radius: 50%;
             object-fit: cover;
-            border: 2px solid rgba(255, 255, 255, 0.18);
+            border: 2px solid rgba(255, 255, 255, 0.2);
             margin-bottom: 12px;
-            box-shadow: 0 0 22px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 0 24px rgba(0, 0, 0, 0.65);
+            transform: translateZ(30px);
         }
 
-        /* Nombre central estilo Bellini ("Catruu" con mayúscula inicial y minúsculas) */
+        /* Contenedor de nombre con chispas/partículas blancas (estilo ENROLA) */
+        .name-sparkle-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 18px;
+            margin-bottom: 2px;
+            transform: translateZ(40px);
+        }
+
         .title-glow {
             font-family: 'Syne', sans-serif;
-            font-size: 2.35rem;
+            font-size: 2.4rem;
             font-weight: 800;
             letter-spacing: -0.5px;
             color: #ffffff;
-            text-shadow: 0 0 18px rgba(255, 255, 255, 0.75), 0 0 35px rgba(168, 85, 247, 0.45);
-            margin-bottom: 4px;
+            text-shadow: 
+                0 0 12px rgba(255, 255, 255, 0.9),
+                0 0 28px rgba(255, 255, 255, 0.55),
+                0 0 45px rgba(168, 85, 247, 0.45);
             line-height: 1.1;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Partículas/Chispas alrededor del texto */
+        .sparkle-particle {
+            position: absolute;
+            background-color: #ffffff;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 3;
+            box-shadow: 0 0 6px #ffffff, 0 0 10px rgba(255, 255, 255, 0.9);
+            animation: floatSparkle linear infinite;
+        }
+
+        @keyframes floatSparkle {
+            0% {
+                transform: translateY(4px) scale(0);
+                opacity: 0;
+            }
+            35% {
+                opacity: 1;
+                transform: translateY(-2px) scale(1);
+            }
+            70% {
+                opacity: 0.85;
+            }
+            100% {
+                transform: translateY(-16px) scale(0);
+                opacity: 0;
+            }
         }
 
         /* Subtítulo en MAYÚSCULAS ("KYVEN STORE") */
@@ -130,6 +208,7 @@
             color: rgba(255, 255, 255, 0.82);
             text-transform: uppercase;
             margin-bottom: 20px;
+            transform: translateZ(25px);
         }
 
         /* Mini tarjeta de estado de Discord real */
@@ -137,18 +216,20 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            background: rgba(20, 20, 24, 0.48);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(20, 20, 24, 0.52);
+            border: 1px solid rgba(255, 255, 255, 0.11);
             padding: 10px 16px;
             border-radius: 14px;
             margin-bottom: 22px;
-            min-width: 255px;
+            min-width: 265px;
+            transform: translateZ(28px);
+            z-index: 2;
         }
 
         .discord-avatar-wrap {
             position: relative;
-            width: 44px;
-            height: 44px;
+            width: 46px;
+            height: 46px;
             flex-shrink: 0;
         }
 
@@ -181,9 +262,15 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            font-weight: 600;
+            font-weight: 700;
             font-size: 0.92rem;
             color: #fff;
+        }
+
+        .discord-sub-username {
+            font-size: 0.72rem;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 500;
         }
 
         .clan-tag {
@@ -199,16 +286,11 @@
             font-weight: 600;
         }
 
-        .clan-tag i {
-            color: #a855f7;
-            font-size: 0.62rem;
-        }
-
         .discord-activity {
-            font-size: 0.76rem;
-            color: rgba(255, 255, 255, 0.68);
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.7);
             margin-top: 2px;
-            max-width: 190px;
+            max-width: 195px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -220,6 +302,8 @@
             align-items: center;
             gap: 20px;
             margin-bottom: 8px;
+            transform: translateZ(32px);
+            z-index: 2;
         }
 
         .social-links a {
@@ -245,9 +329,11 @@
             font-size: 0.8rem;
             font-weight: 600;
             color: rgba(255, 255, 255, 0.85);
+            transform: translateZ(20px);
+            z-index: 2;
         }
 
-        /* Barra Reproductor Inferior */
+        /* Barra Reproductor Inferior con efecto 3D */
         .music-player {
             width: 100%;
             max-width: 550px;
@@ -260,7 +346,7 @@
             display: flex;
             align-items: center;
             gap: 14px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.55);
         }
 
         .album-cover {
@@ -274,6 +360,8 @@
             flex-shrink: 0;
             overflow: hidden;
             border: 1px solid rgba(255, 255, 255, 0.14);
+            transform: translateZ(20px);
+            z-index: 2;
         }
 
         .album-cover img {
@@ -287,6 +375,8 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
+            transform: translateZ(20px);
+            z-index: 2;
         }
 
         .track-title {
@@ -325,15 +415,18 @@
             gap: 14px;
             font-size: 0.9rem;
             color: rgba(255, 255, 255, 0.85);
+            transform: translateZ(25px);
+            z-index: 2;
         }
 
         .player-controls i {
             cursor: pointer;
-            transition: color 0.2s;
+            transition: color 0.2s, transform 0.15s;
         }
 
         .player-controls i:hover {
             color: #fff;
+            transform: scale(1.12);
         }
     </style>
 </head>
@@ -354,23 +447,29 @@
     </audio>
 
     <div class="main-wrapper">
-        <div class="profile-card">
-            <img id="top-avatar" class="main-avatar" src="https://files.catbox.moe/1cv7on.png" alt="Avatar">
+        <!-- Ventana Transparente 1 (con efecto 3D) -->
+        <div class="profile-card tilt-card">
+            <!-- Imagen central fija que pediste -->
+            <img id="top-avatar" class="main-avatar" src="https://files.catbox.moe/xobhu9.png" alt="Avatar">
             
-            <!-- Nombre con fuente estilo Bellini (Solo primera letra mayúscula) -->
-            <h1 class="title-glow">Catruu</h1>
+            <!-- Nombre con efecto de partículas/destellos igual a tu captura -->
+            <div class="name-sparkle-wrap" id="sparkle-container">
+                <h1 class="title-glow">Catruu</h1>
+            </div>
+
             <!-- Solo KYVEN STORE en mayúsculas -->
             <p class="subtitle">KYVEN STORE</p>
 
-            <!-- Caja de Discord conectada en vivo -->
+            <!-- Caja de Discord conectada a tu perfil real -->
             <div class="discord-box">
                 <div class="discord-avatar-wrap">
-                    <img id="dc-avatar" src="https://files.catbox.moe/1cv7on.png" alt="Discord">
+                    <img id="dc-avatar" src="https://files.catbox.moe/xobhu9.png" alt="Discord">
                     <div id="dc-status" class="status-dot"></div>
                 </div>
                 <div class="discord-info">
                     <div class="discord-name-row">
-                        <span id="dc-username">catruuu</span>
+                        <span id="dc-displayname">Im,Catri</span>
+                        <span id="dc-username" class="discord-sub-username">@catruuu</span>
                         <span class="clan-tag">🗡️ LC</span>
                     </div>
                     <span id="dc-activity" class="discord-activity">currently doing nothing</span>
@@ -397,8 +496,8 @@
             </div>
         </div>
 
-        <!-- Barra reproductora con tu foto -->
-        <div class="music-player">
+        <!-- Ventana Transparente 2: Reproductor de Música (con efecto 3D) -->
+        <div class="music-player tilt-card">
             <div class="album-cover">
                 <img src="https://files.catbox.moe/2j0e1z.jpg" alt="Cover">
             </div>
@@ -421,22 +520,20 @@
     </div>
 
     <script>
-        // --- Animación suave (smooth) del título en la pestaña (@C -> @Ca -> @Catruu) ---
+        // --- 1. Animación suave (smooth) del título en la pestaña (@C -> @Ca -> @Catruu) ---
         const tabWord = "Catruu";
         let charIndex = 0;
         let isDeleting = false;
 
         function animateTabTitle() {
             document.title = "@" + tabWord.substring(0, charIndex);
-
-            // Tiempos más lentos y relajados para que se sienta smooth
             let speed = isDeleting ? 380 : 520;
 
             if (!isDeleting && charIndex === tabWord.length) {
-                speed = 2000; // Se queda 2 segundos mostrando @Catruu completo
+                speed = 2000;
                 isDeleting = true;
             } else if (isDeleting && charIndex === 0) {
-                speed = 700; // Pausa suave en @ antes de volver a escribir
+                speed = 700;
                 isDeleting = false;
             }
 
@@ -445,7 +542,50 @@
         }
         animateTabTitle();
 
-        // --- Controles de Video y Música ---
+        // --- 2. Generador de partículas/chispas blancas alrededor del nombre (estilo ENROLA) ---
+        const sparkleContainer = document.getElementById('sparkle-container');
+        const totalSparkles = 26;
+
+        for (let i = 0; i < totalSparkles; i++) {
+            const dot = document.createElement('span');
+            dot.className = 'sparkle-particle';
+            const size = (Math.random() * 2.8 + 1.5).toFixed(1);
+            dot.style.width = `${size}px`;
+            dot.style.height = `${size}px`;
+            dot.style.left = `${Math.random() * 100}%`;
+            dot.style.top = `${Math.random() * 85 + 10}%`;
+            dot.style.animationDuration = `${(Math.random() * 1.8 + 1.2).toFixed(2)}s`;
+            dot.style.animationDelay = `${(Math.random() * 2).toFixed(2)}s`;
+            sparkleContainer.appendChild(dot);
+        }
+
+        // --- 3. Efecto 3D al pasar el cursor en las 2 tarjetas transparentes ---
+        const tiltCards = document.querySelectorAll('.tilt-card');
+
+        tiltCards.forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+
+                // Inclinación suave en 3D según la posición del cursor
+                const maxTilt = card.classList.contains('music-player') ? 8 : 11;
+                const rotateX = ((y - centerY) / centerY) * -maxTilt;
+                const rotateY = ((x - centerX) / centerX) * maxTilt;
+
+                card.style.setProperty('--mouse-x', `${x}px`);
+                card.style.setProperty('--mouse-y', `${y}px`);
+                card.style.transform = `rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale3d(1.015, 1.015, 1.015)`;
+            });
+
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = `rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+            });
+        });
+
+        // --- 4. Controles de Video y Música ---
         const enterScreen = document.getElementById('enter-screen');
         const video = document.getElementById('bg-video');
         const audio = document.getElementById('bg-audio');
@@ -504,25 +644,27 @@
             progressFill.style.width = `${percent || 0}%`;
         });
 
-        // --- Cargar tu estado real de Discord y vistas reales ---
+        // --- 5. Cargar tu Apodo, Foto de Perfil Real y Estado de Discord ---
         async function fetchDiscordStatus() {
             try {
                 const res = await fetch('/api/catruu-status');
                 const data = await res.json();
 
-                document.getElementById('dc-username').textContent = data.username || 'catruuu';
+                document.getElementById('dc-displayname').textContent = data.displayName || 'Im,Catri';
+                document.getElementById('dc-username').textContent = data.username ? `@${data.username}` : '@catruuu';
+                
+                // Actualiza solo el avatar de tu cajita de Discord, dejando intacta tu imagen del medio (xobhu9.png)
                 if (data.avatar) {
                     document.getElementById('dc-avatar').src = data.avatar;
-                    document.getElementById('top-avatar').src = data.avatar;
                 }
                 document.getElementById('dc-activity').textContent = data.activity || 'currently doing nothing';
                 document.getElementById('view-count').textContent = data.views;
 
                 const statusColors = {
-                    online: '#23a55a', // Verde (Conectado)
-                    idle: '#f0b232',   // Amarillo (Ausente)
-                    dnd: '#f23f43',    // Rojo (No molestar)
-                    offline: '#80848e' // Gris (Desconectado)
+                    online: '#23a55a', // Conectado
+                    idle: '#f0b232',   // Ausente
+                    dnd: '#f23f43',    // No molestar
+                    offline: '#80848e' // Desconectado
                 };
                 document.getElementById('dc-status').style.backgroundColor = statusColors[data.status] || '#80848e';
             } catch (e) {
@@ -531,7 +673,7 @@
         }
 
         fetchDiscordStatus();
-        setInterval(fetchDiscordStatus, 30000); // Refresca cada 30s
+        setInterval(fetchDiscordStatus, 25000);
     </script>
 </body>
 </html>
