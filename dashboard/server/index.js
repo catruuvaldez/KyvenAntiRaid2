@@ -1,25 +1,26 @@
-'use strict';
+// Punto de entrada de KYVEN RESTORE 2.0
+require('dotenv').config();
 
-const express = require('express');
 const path = require('path');
-const { registerApiRoutes } = require('./api');
-const { registerDashboardPage } = require('./frontend');
+const { createDatabase } = require('./dashboard/database/models');
+const { createSessionSecurity } = require('./dashboard/security/sessions');
+const { createDashboardPages } = require('./dashboard/utils/pages');
+const { createRestoreSystem } = require('./dashboard/systems/restore');
+const { startDashboardServer } = require('./dashboard/server');
+const { createDiscordClient, registerDiscordEvents } = require('./dashboard/interactions/commands');
 
-function startDashboardServer(dependencies) {
-    const app = express();
-    const PORT = process.env.PORT || 3000;
-    app.use(express.json());
-    app.use(express.urlencoded({ extended: true }));
-    registerApiRoutes(app, dependencies);
-    registerDashboardPage(app);
-    // Register application routes before static files so /dashboard and
-    // /dashboard/ are rendered through the view composer, not dashboard/index.html.
-    // Nunca exponer las plantillas y los datos privados mediante el servidor estático.
-    app.use('/.pc-private', (req, res) => res.sendStatus(404));
-    app.use(express.static(dependencies.rootDir));
-    app.listen(PORT, () => {
-        console.log(`?? KYVEN RESTORE 2.0 ? CONTROL CENTER activo en el puerto ${PORT}`);
-    });
-}
+const rootDir = __dirname;
+const ADMIN_USER = (process.env.ADMIN_USER || 'Catrii').trim();
+const CODIGO_SECRETO = (process.env.BACKUP_PIN || '100309AJL').trim();
+const OWNER_ID = (process.env.OWNER_ID || '').trim();
+const client = createDiscordClient();
+const database = createDatabase();
+const security = createSessionSecurity();
+const pages = createDashboardPages(rootDir);
+const restore = createRestoreSystem({ ...database, client });
+const getRestoreState = () => ({ restoreEnCurso: restore.restoreEnCurso, progresoRestore: restore.progresoRestore });
 
-module.exports = { startDashboardServer };
+startDashboardServer({ rootDir, ADMIN_USER, CODIGO_SECRETO, OWNER_ID, client, ...database, ...security, ...pages, getRestoreState, transferirMiembrosSeguro: restore.transferirMiembrosSeguro });
+registerDiscordEvents({ client, rootDir, ...database, ...security, CODIGO_SECRETO, OWNER_ID, getRestoreState, transferirMiembrosSeguro: restore.transferirMiembrosSeguro });
+
+client.login(process.env.TOKEN);

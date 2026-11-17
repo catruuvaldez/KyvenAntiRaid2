@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@Catruu</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #08080a;
+            color: #ffffff;
+        }
+
+        /* Pantalla de entrada */
+        #enter-screen {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 5, 7, 0.94);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: opacity 0.6s ease;
+        }
+
+        #enter-screen span {
+            font-size: 1.05rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            color: #fff;
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.55; }
+            50% { opacity: 1; }
+        }
+
+        /* Video de fondo desde Catbox */
+        #bg-video {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            transform: translate(-50%, -50%);
+            object-fit: cover;
+            z-index: 1;
+            filter: brightness(0.88);
+        }
+
+        .main-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            padding: 20px;
+        }
+
+        /* Tarjeta Principal */
+        .profile-card {
+            width: 100%;
+            max-width: 550px;
+            background: rgba(15, 15, 18, 0.32);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 32px 24px 22px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+        }
+
+        .main-avatar {
+            width: 92px;
+            height: 92px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            margin-bottom: 14px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .title-glow {
+            font-size: 1.85rem;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            text-shadow: 0 0 14px rgba(255, 255, 255, 0.85);
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 1.2px;
+            color: rgba(255, 255, 255, 0.85);
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        /* Mini tarjeta de estado de Discord */
+        .discord-box {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 10px 16px;
+            border-radius: 14px;
+            margin-bottom: 22px;
+            min-width: 240px;
+        }
+
+        .discord-avatar-wrap {
+            position: relative;
+            width: 44px;
+            height: 44px;
+            flex-shrink: 0;
+        }
+
+        .discord-avatar-wrap img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .status-dot {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            border: 2px solid #141416;
+            background-color: #f23f43;
+        }
+
+        .discord-info {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+        }
+
+        .discord-name-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .clan-tag {
+            font-size: 0.68rem;
+            background: rgba(255, 255, 255, 0.12);
+            padding: 2px 6px;
+            border-radius: 5px;
+            color: #ddd;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .discord-activity {
+            font-size: 0.76rem;
+            color: rgba(255, 255, 255, 0.65);
+            margin-top: 2px;
+        }
+
+        /* Redes Sociales */
+        .social-links {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin-bottom: 8px;
+        }
+
+        .social-links a {
+            color: #ffffff;
+            font-size: 1.55rem;
+            transition: transform 0.2s ease, filter 0.2s ease;
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.55));
+        }
+
+        .social-links a:hover {
+            transform: scale(1.15);
+            filter: drop-shadow(0 0 14px rgba(255, 255, 255, 1));
+        }
+
+        /* Contador de vistas */
+        .views-counter {
+            position: absolute;
+            bottom: 14px;
+            left: 18px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        /* Barra Reproductor Inferior */
+        .music-player {
+            width: 100%;
+            max-width: 550px;
+            background: rgba(15, 15, 18, 0.32);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+        }
+
+        .album-cover {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .track-details {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .track-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .progress-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.72rem;
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .progress-bar-bg {
+            flex: 1;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.22);
+            border-radius: 4px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .progress-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: #ffffff;
+            border-radius: 4px;
+        }
+
+        .player-controls {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .player-controls i {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .player-controls i:hover {
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="enter-screen">
+        <span>click to enter...</span>
+    </div>
+
+    <!-- Video de fondo (con sonido incluido desde tu link de Catbox) -->
+    <video id="bg-video" loop playsinline preload="auto">
+        <source src="https://files.catbox.moe/njkp5q.mp4" type="video/mp4">
+    </video>
+
+    <div class="main-wrapper">
+        <div class="profile-card">
+            <img id="top-avatar" class="main-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Avatar">
+            
+            <h1 class="title-glow">ENROLA</h1>
+            <p class="subtitle">CATRUU</p>
+
+            <div class="discord-box">
+                <div class="discord-avatar-wrap">
+                    <img id="dc-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Discord">
+                    <div id="dc-status" class="status-dot"></div>
+                </div>
+                <div class="discord-info">
+                    <div class="discord-name-row">
+                        <span id="dc-username">catruu</span>
+                        <span class="clan-tag"><i class="fa-solid fa-bolt"></i> KYVEN</span>
+                    </div>
+                    <span id="dc-activity" class="discord-activity">currently doing nothing</span>
+                </div>
+            </div>
+
+            <!-- Tus redes sociales -->
+            <div class="social-links">
+                <a href="https://discord.gg/TU_SERVIDOR" target="_blank" title="Discord"><i class="fa-brands fa-discord"></i></a>
+                <a href="https://tiktok.com/@TU_USUARIO" target="_blank" title="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+                <a href="https://steamcommunity.com/id/TU_STEAM" target="_blank" title="Steam"><i class="fa-brands fa-steam"></i></a>
+            </div>
+
+            <div class="views-counter">
+                <i class="fa-regular fa-eye"></i>
+                <span id="view-count">240</span>
+            </div>
+        </div>
+
+        <!-- Barra reproductora sincronizada con el video -->
+        <div class="music-player">
+            <div class="album-cover">
+                <i class="fa-solid fa-music"></i>
+            </div>
+            <div class="track-details">
+                <div class="track-title">AMANECE</div>
+                <div class="progress-row">
+                    <span id="current-time">0:00</span>
+                    <div class="progress-bar-bg" id="progress-container">
+                        <div class="progress-bar-fill" id="progress-fill"></div>
+                    </div>
+                    <span id="total-time">0:00</span>
+                </div>
+            </div>
+            <div class="player-controls">
+                <i class="fa-solid fa-backward-step" id="prev-btn"></i>
+                <i class="fa-solid fa-pause" id="play-pause-btn"></i>
+                <i class="fa-solid fa-forward-step" id="next-btn"></i>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const enterScreen = document.getElementById('enter-screen');
+        const video = document.getElementById('bg-video');
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const progressContainer = document.getElementById('progress-container');
+        const progressFill = document.getElementById('progress-fill');
+        const currentTimeEl = document.getElementById('current-time');
+        const totalTimeEl = document.getElementById('total-time');
+
+        video.volume = 0.45;
+
+        // Entrar y activar el video con audio
+        enterScreen.addEventListener('click', () => {
+            enterScreen.style.opacity = '0';
+            setTimeout(() => enterScreen.style.display = 'none', 600);
+            video.muted = false;
+            video.play();
+        });
+
+        // Pausar / Reproducir desde la barra inferior
+        playPauseBtn.addEventListener('click', () => {
+            if (video.paused) {
+                video.play();
+                playPauseBtn.className = 'fa-solid fa-pause';
+            } else {
+                video.pause();
+                playPauseBtn.className = 'fa-solid fa-play';
+            }
+        });
+
+        // Reiniciar canción/video con el botón atrás
+        prevBtn.addEventListener('click', () => {
+            video.currentTime = 0;
+        });
+
+        // Adelantar haciendo clic en la barra de progreso
+        progressContainer.addEventListener('click', (e) => {
+            const rect = progressContainer.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            if (video.duration) {
+                video.currentTime = (clickX / rect.width) * video.duration;
+            }
+        });
+
+        function formatTime(sec) {
+            if (isNaN(sec)) return "0:00";
+            const m = Math.floor(sec / 60);
+            const s = Math.floor(sec % 60);
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
+        video.addEventListener('loadedmetadata', () => {
+            totalTimeEl.textContent = formatTime(video.duration);
+        });
+
+        video.addEventListener('timeupdate', () => {
+            currentTimeEl.textContent = formatTime(video.currentTime);
+            const percent = (video.currentTime / video.duration) * 100;
+            progressFill.style.width = `${percent || 0}%`;
+        });
+
+        // Cargar estado de Discord desde la caché del bot (cada 60s para cuidar Render Free)
+        async function fetchDiscordStatus() {
+            try {
+                const res = await fetch('/api/catruu-status');
+                const data = await res.json();
+
+                document.getElementById('dc-username').textContent = data.username;
+                document.getElementById('dc-avatar').src = data.avatar;
+                document.getElementById('top-avatar').src = data.avatar;
+                document.getElementById('dc-activity').textContent = data.activity;
+                document.getElementById('view-count').textContent = data.views;
+
+                const statusColors = {
+                    online: '#23a55a',
+                    idle: '#f0b232',
+                    dnd: '#f23f43',
+                    offline: '#80848e'
+                };
+                document.getElementById('dc-status').style.backgroundColor = statusColors[data.status] || '#f23f43';
+            } catch (e) {
+                console.error('Error cargando estado:', e);
+            }
+        }
+
+        fetchDiscordStatus();
+        setInterval(fetchDiscordStatus, 60000);
+    </script>
+</body>
+</html>

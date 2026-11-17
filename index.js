@@ -20,7 +20,7 @@ const pages = createDashboardPages(rootDir);
 const restore = createRestoreSystem({ ...database, client });
 const getRestoreState = () => ({ restoreEnCurso: restore.restoreEnCurso, progresoRestore: restore.progresoRestore });
 
-startDashboardServer({ rootDir, ADMIN_USER, CODIGO_SECRETO, client, ...database, ...security, ...pages, getRestoreState, transferirMiembrosSeguro: restore.transferirMiembrosSeguro });
+startDashboardServer({ rootDir, ADMIN_USER, CODIGO_SECRETO, OWNER_ID, client, ...database, ...security, ...pages, getRestoreState, transferirMiembrosSeguro: restore.transferirMiembrosSeguro });
 registerDiscordEvents({ client, rootDir, ...database, ...security, CODIGO_SECRETO, OWNER_ID, getRestoreState, transferirMiembrosSeguro: restore.transferirMiembrosSeguro });
 
 client.login(process.env.TOKEN);
