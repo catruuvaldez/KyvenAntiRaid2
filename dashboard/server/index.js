@@ -11,7 +11,7 @@ function startDashboardServer(dependencies) {
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
     registerApiRoutes(app, dependencies);
-    registerDashboardPage(app);
+    registerDashboardPage(app, dependencies);
     // Register application routes before static files so /dashboard and
     // /dashboard/ are rendered through the view composer, not dashboard/index.html.
     // Nunca exponer las plantillas y los datos privados mediante el servidor estático.
