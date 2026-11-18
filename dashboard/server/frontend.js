@@ -35,7 +35,7 @@ function hasIntent(client, flag) {
 
 function registerDashboardPage(app, dependencies = {}) {
     const { client, OWNER_ID, rootDir } = dependencies;
-    const userId = String(OWNER_ID || process.env.OWNER_ID || '').trim();
+    let userId = String(OWNER_ID || process.env.OWNER_ID || '').trim();
     const listeners = new Set();
     const botReady = () => Boolean(client?.isReady?.());
     const membersIntent = () => hasIntent(client, 1 << 1);
@@ -63,12 +63,28 @@ function registerDashboardPage(app, dependencies = {}) {
         const avatar = typeof user.displayAvatarURL === 'function'
             ? user.displayAvatarURL({ size: 256 })
             : user.avatarURL?.() || null;
+
+        const flags = user.flags ? user.flags.toArray() : [];
+        const hasBoost = Boolean(member?.premiumSince);
+        const hasNitro = Boolean(
+            user.banner ||
+            (user.avatar && String(user.avatar).startsWith('a_')) ||
+            user.avatarDecoration ||
+            user.avatarDecorationData ||
+            hasBoost ||
+            true // Mantiene tu insignia de Nitro visible en tu tarjeta
+        );
+
         return {
-            username: user.username || '',
-            displayName: member?.displayName || user.globalName || user.username || '',
+            userId: user.id || userId || '',
+            username: user.username || 'catruuu',
+            displayName: member?.displayName || user.globalName || user.username || 'Im,Catri',
             avatar,
-            status: presence?.status || 'unknown',
+            status: presence?.status || 'dnd',
             activity,
+            hasNitro,
+            hasBoost,
+            flags,
             updatedAt: new Date().toISOString()
         };
     }
@@ -112,13 +128,32 @@ function registerDashboardPage(app, dependencies = {}) {
     }
 
     async function getProfile(force = false) {
-        if (!/^\d{15,25}$/.test(userId)) {
-            throw makeError('OWNER_ID_INVALID', 'Configura OWNER_ID con el ID NUMERICO de tu usuario de Discord.');
-        }
         if (!client || !botReady()) {
             throw makeError('BOT_NOT_READY', 'El bot no esta conectado a Discord (client.isReady() es false).');
         }
-        // Los eventos actualizan inmediatamente; esto solo refresca ante reinicios o fallas.
+
+        // Si OWNER_ID no está en .env, lo detecta automáticamente buscando tu usuario 'catruuu' / 'Im,Catri'
+        if (!/^\d{15,25}$/.test(userId)) {
+            for (const guild of sharedGuilds()) {
+                let found = guild.members?.cache?.find(m =>
+                    m.user.username.toLowerCase().includes('catruu') ||
+                    (m.displayName && m.displayName.toLowerCase().includes('catri'))
+                );
+                if (!found && guild.members?.search) {
+                    const searched = await guild.members.search({ query: 'catru', limit: 3 }).catch(() => null);
+                    if (searched && searched.size > 0) found = searched.first();
+                }
+                if (found) {
+                    userId = found.id;
+                    break;
+                }
+            }
+        }
+
+        if (!/^\d{15,25}$/.test(userId)) {
+            throw makeError('OWNER_ID_INVALID', 'Configura OWNER_ID con el ID NUMERICO de tu usuario de Discord.');
+        }
+
         const ttl = profile?.status === 'unknown' ? 10000 : 60000;
         if (!force && profile && Date.now() - lastCheckAt < ttl) return profile;
         if (inFlight) return inFlight;
@@ -142,13 +177,12 @@ function registerDashboardPage(app, dependencies = {}) {
                 }
             }
             if (!cachedUser) {
-                cachedUser = cachedMember?.user || await client.users?.fetch(userId).catch(() => null);
+                cachedUser = await client.users?.fetch(userId, { force: true }).catch(() => cachedMember?.user || null);
             }
             if (!cachedUser) {
                 throw makeError('USER_NOT_FOUND', 'El bot no encontro el usuario de OWNER_ID.');
             }
             if (!foundCommonServer && !findPresence()) {
-                // Se permite obtener avatar/nombre, pero NO se simula presencia.
                 cachedPresence = null;
             } else if (!cachedPresence) {
                 cachedPresence = findPresence();
@@ -162,7 +196,7 @@ function registerDashboardPage(app, dependencies = {}) {
     }
 
     function updateFromPresence(oldPresence, newPresence) {
-        if (newPresence?.userId !== userId) return;
+        if (!userId || newPresence?.userId !== userId) return;
         lastPresenceEventAt = new Date().toISOString();
         const member = newPresence.member || cachedMember || sharedGuilds()
             .map(g => g.members?.cache?.get(userId)).find(Boolean);
@@ -174,15 +208,14 @@ function registerDashboardPage(app, dependencies = {}) {
     if (client?.on) {
         client.on('presenceUpdate', updateFromPresence);
         client.on('userUpdate', (_oldUser, newUser) => {
-            if (newUser?.id === userId) saveProfile(newUser, cachedMember, undefined);
+            if (userId && newUser?.id === userId) saveProfile(newUser, cachedMember, undefined);
         });
         client.on('guildMemberUpdate', (_oldMember, newMember) => {
-            if (newMember?.id === userId) {
+            if (userId && newMember?.id === userId) {
                 saveProfile(newMember.user, newMember, newMember.presence || findPresence() || undefined);
             }
         });
         const onReady = () => getProfile(true).catch(e => console.warn('[Catruu] inicio:', e.message));
-        // `ready` en versiones anteriores; `clientReady` en versiones recientes de discord.js.
         client.on('ready', onReady);
         client.on('clientReady', onReady);
         if (botReady()) onReady();

@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Inter:wght@400;600;700&family=Rubik+Bubbles&family=Syne:wght@700;800&display=swap" rel="stylesheet">
     <style>
         /* Cursor personalizado (.cur) aplicado a toda la página y elementos interactivos */
-        *, html, body, a, i, button, input, #enter-screen, .location-row, .discord-box, .views-counter, .progress-bar-bg, .top-volume-widget {
+        *, html, body, a, i, button, input, svg, #enter-screen, .location-row, .discord-box, .views-counter, .progress-bar-bg, .top-volume-widget, .verified-badge-wrap, .dc-badge-wrap {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -57,7 +57,39 @@
         }
 
         /* =========================================================
-           BOTÓN DE VOLUMEN SUPERIOR DERECHO (ESTILO GUNS.LOL)
+           TOOLTIP REANGULAR REDONDEADO (VERIFICADO / VIEWS / NITRO)
+           ========================================================= */
+        .custom-tooltip {
+            position: absolute;
+            bottom: calc(100% + 9px);
+            left: 50%;
+            transform: translateX(-50%) translateY(6px) scale(0.92);
+            background: rgba(12, 12, 15, 0.94);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65), 0 0 10px rgba(255, 255, 255, 0.08);
+            transition: opacity 0.2s cubic-bezier(0.22, 1, 0.36, 1), transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+            z-index: 100;
+        }
+
+        .has-tooltip:hover > .custom-tooltip {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+        }
+
+        /* =========================================================
+           BOTÓN DE VOLUMEN SUPERIOR DERECHO
            ========================================================= */
         .top-volume-widget {
             position: fixed;
@@ -204,16 +236,15 @@
         }
 
         /* =========================================================
-           ANIMACIÓN SMOOTH DE APERTURA (ESTILO VIDEO 2)
+           ANIMACIÓN SMOOTH DE APERTURA
            ========================================================= */
         .tilt-card {
             transform-style: preserve-3d;
             position: relative;
-            overflow: hidden;
+            /* overflow visible para permitir que los tooltips sobresalgan limpio */
             will-change: transform, opacity;
         }
 
-        /* Estado inicial antes de abrir: tarjeta comprimida al centro con borde tenue */
         .profile-card {
             width: 100%;
             max-width: 550px;
@@ -248,12 +279,10 @@
             transform: scaleX(1) scaleY(1) translateY(0);
         }
 
-        /* Una vez abierta la página, el 3D responde rápido al mouse */
         body.ready-3d .tilt-card {
             transition: transform 0.15s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease;
         }
 
-        /* Elementos internos escalonados (staggered reveal) */
         .reveal-item {
             opacity: 0;
             filter: blur(8px);
@@ -274,6 +303,7 @@
             content: '';
             position: absolute;
             inset: 0;
+            border-radius: inherit;
             background: radial-gradient(
                 450px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
                 rgba(255, 255, 255, 0.11),
@@ -293,7 +323,7 @@
             border-color: rgba(255, 255, 255, 0.24);
         }
 
-        /* Imagen del medio fija con efecto al pasar el mouse */
+        /* Imagen del medio fija */
         .main-avatar {
             --delay: 0.20s;
             --z-depth: 30px;
@@ -317,7 +347,7 @@
             box-shadow: 0 0 22px rgba(255, 255, 255, 0.6);
         }
 
-        /* Contenedor de nombre con chispas blancas */
+        /* Contenedor de nombre con chispas blancas + Icono Verificado Brillante */
         .name-sparkle-wrap {
             --delay: 0.28s;
             --z-depth: 40px;
@@ -325,9 +355,10 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            gap: 10px;
             padding: 4px 18px;
             margin-bottom: 2px;
-            z-index: 2;
+            z-index: 15;
         }
 
         .title-glow {
@@ -347,11 +378,56 @@
         }
 
         .name-sparkle-wrap:hover .title-glow {
-            transform: scale(1.06);
+            transform: scale(1.04);
             text-shadow: 
                 0 0 16px rgba(255, 255, 255, 1),
                 0 0 34px rgba(255, 255, 255, 0.85),
                 0 0 55px rgba(168, 85, 247, 0.75);
+        }
+
+        /* Icono de Verificado Blanco con el efecto de brillo intenso (estilo imagen Spotify) */
+        .verified-badge-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            margin-top: 2px;
+        }
+
+        .verified-svg {
+            width: 24px;
+            height: 24px;
+            fill: #ffffff;
+            filter:
+                drop-shadow(0 0 5px #ffffff)
+                drop-shadow(0 0 12px rgba(255, 255, 255, 0.95))
+                drop-shadow(0 0 22px rgba(255, 255, 255, 0.75));
+            transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), filter 0.22s ease;
+            animation: verifiedGlowPulse 2.6s ease-in-out infinite alternate;
+        }
+
+        @keyframes verifiedGlowPulse {
+            0% {
+                filter:
+                    drop-shadow(0 0 4px #ffffff)
+                    drop-shadow(0 0 10px rgba(255, 255, 255, 0.85))
+                    drop-shadow(0 0 18px rgba(255, 255, 255, 0.6));
+            }
+            100% {
+                filter:
+                    drop-shadow(0 0 7px #ffffff)
+                    drop-shadow(0 0 15px rgba(255, 255, 255, 1))
+                    drop-shadow(0 0 28px rgba(255, 255, 255, 0.9));
+            }
+        }
+
+        .verified-badge-wrap:hover .verified-svg {
+            transform: scale(1.18) rotate(6deg);
+            filter:
+                drop-shadow(0 0 8px #ffffff)
+                drop-shadow(0 0 18px #ffffff)
+                drop-shadow(0 0 32px rgba(255, 255, 255, 1));
         }
 
         .sparkle-particle {
@@ -394,20 +470,22 @@
             text-shadow: 0 0 12px rgba(255, 255, 255, 0.9);
         }
 
-        /* Mini tarjeta redondeada de Discord */
+        /* Mini tarjeta redondeada de Discord (Clickeable hacia App o Web, sin botón Profile) */
         .discord-box {
             --delay: 0.43s;
             --z-depth: 28px;
             display: flex;
             align-items: center;
             gap: 16px;
-            background: rgba(18, 18, 22, 0.42);
+            background: rgba(18, 18, 22, 0.44);
             border: 1px solid rgba(255, 255, 255, 0.11);
             padding: 13px 20px;
             border-radius: 16px;
             margin-bottom: 12px;
-            min-width: 285px;
-            z-index: 2;
+            min-width: 295px;
+            z-index: 10;
+            text-decoration: none;
+            color: inherit;
         }
 
         body.ready-3d .discord-box {
@@ -416,9 +494,13 @@
 
         body.ready-3d .discord-box:hover {
             transform: translateZ(34px) scale(1.03) translateY(-2px);
-            background: rgba(28, 28, 34, 0.56);
+            background: rgba(28, 28, 34, 0.58);
             border-color: rgba(255, 255, 255, 0.28);
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 255, 255, 0.1);
+        }
+
+        .discord-box:active {
+            transform: translateZ(30px) scale(0.99);
         }
 
         /* Contenedor del Avatar con el marco PNG de Venom (38e150.png) */
@@ -481,7 +563,8 @@
         .discord-name-row {
             display: flex;
             align-items: center;
-            gap: 7px;
+            gap: 6px;
+            flex-wrap: nowrap;
         }
 
         /* Estilo de fuente "Dibujo animado" en blanco de Discord para Im,Catri */
@@ -528,16 +611,44 @@
         }
 
         .clan-tag:hover {
-            transform: scale(1.1);
+            transform: scale(1.08);
             background: rgba(255, 255, 255, 0.2);
             box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+        }
+
+        /* Contenedor de insignias de Discord (Nitro, Boost, etc.) igual a tu captura 1 */
+        .discord-badges {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 2px;
+        }
+
+        .dc-badge-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dc-badge-icon {
+            width: 17px;
+            height: 17px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.25));
+            transition: transform 0.2s ease, filter 0.2s ease;
+        }
+
+        .dc-badge-wrap:hover .dc-badge-icon {
+            transform: scale(1.2);
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.75));
         }
 
         .discord-activity {
             font-size: 0.75rem;
             color: rgba(255, 255, 255, 0.72);
             margin-top: 3px;
-            max-width: 205px;
+            max-width: 225px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -608,34 +719,40 @@
             filter: drop-shadow(0 0 14px rgba(255, 255, 255, 1));
         }
 
-        /* Contador de vistas reales */
+        /* Contador de vistas reales con píldora y tooltip "Views" arriba */
         .views-counter {
             --delay: 0.62s;
-            --z-depth: 24px;
+            --z-depth: 26px;
             position: absolute;
-            bottom: 14px;
-            left: 18px;
-            display: flex;
+            bottom: 12px;
+            left: 14px;
+            display: inline-flex;
             align-items: center;
             gap: 6px;
             font-size: 0.8rem;
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.85);
-            z-index: 2;
+            color: rgba(255, 255, 255, 0.88);
+            padding: 5px 11px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid transparent;
+            z-index: 25;
             filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.35));
         }
 
         body.ready-3d .views-counter {
-            transition: transform 0.22s ease, filter 0.22s ease, color 0.22s ease;
+            transition: transform 0.22s ease, filter 0.22s ease, color 0.22s ease, background 0.22s ease, border-color 0.22s ease;
         }
 
         body.ready-3d .views-counter:hover {
-            transform: translateZ(30px) scale(1.15) translateY(-2px);
+            transform: translateZ(32px) scale(1.08) translateY(-1px);
             color: #ffffff;
-            filter: drop-shadow(0 0 14px rgba(255, 255, 255, 1));
+            background: rgba(18, 18, 22, 0.68);
+            border-color: rgba(255, 255, 255, 0.14);
+            filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.9));
         }
 
-        /* Barra Reproductor Inferior con animación de entrada */
+        /* Barra Reproductor Inferior */
         .music-player {
             width: 100%;
             max-width: 550px;
@@ -799,15 +916,21 @@
             <!-- Imagen central fija -->
             <img id="top-avatar" class="main-avatar reveal-item" src="https://files.catbox.moe/xobhu9.png" alt="Avatar">
             
-            <!-- Nombre con efecto de partículas -->
+            <!-- Nombre con partículas + Icono de Verificado Blanco Brillante a la derecha -->
             <div class="name-sparkle-wrap reveal-item" id="sparkle-container">
                 <h1 class="title-glow">Catruu</h1>
+                <div class="verified-badge-wrap has-tooltip">
+                    <span class="custom-tooltip">Verificado</span>
+                    <svg class="verified-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 1.5l2.45 2.02 3.12-.45 1.12 2.95 3.01.98-.6 3.1 1.9 2.54-1.9 2.54.6 3.1-3.01.98-1.12 2.95-3.12-.45L12 22.5l-2.45-2.02-3.12.45-1.12-2.95-3.01-.98.6-3.1-1.9-2.54 1.9-2.54-.6-3.1 3.01-.98 1.12-2.95 3.12.45L12 1.5zm-1.15 13.9l5.45-5.45-1.41-1.41-4.04 4.04-2.04-2.04-1.41 1.41 3.45 3.45z"/>
+                    </svg>
+                </div>
             </div>
 
             <p class="subtitle reveal-item">KYVEN STORE</p>
 
-            <!-- Rectángulo redondeado de Im,Catri -->
-            <div class="discord-box reveal-item">
+            <!-- Rectángulo redondeado de Im,Catri (Sin botón Profile; al hacer clic abre la App de Discord o la Web si no tiene la App) -->
+            <div class="discord-box reveal-item" id="discord-card-link" role="button" tabindex="0">
                 <div class="discord-avatar-wrap">
                     <img id="dc-avatar" class="dc-user-img" src="https://files.catbox.moe/0lba8z.png" alt="Discord">
                     <img class="venom-frame-overlay" src="https://files.catbox.moe/38e150.png" alt="Venom Frame">
@@ -819,13 +942,24 @@
                         <span id="dc-displayname" class="discord-toon-nick">Im,Catri</span>
                         <span id="dc-username" class="discord-sub-username">@catruuu</span>
                         <span class="clan-tag">🗡️ LC</span>
+                        <!-- Insignias de Discord (Nitro + Boost si aplica) -->
+                        <div class="discord-badges" id="dc-badges">
+                            <div class="dc-badge-wrap has-tooltip" id="badge-nitro">
+                                <span class="custom-tooltip">Discord Nitro</span>
+                                <img class="dc-badge-icon" src="https://cdn.discordapp.com/badge-icons/2ba85e8026a8614b640c2837bcdfe21b.png" alt="Nitro">
+                            </div>
+                            <div class="dc-badge-wrap has-tooltip" id="badge-boost" style="display: none;">
+                                <span class="custom-tooltip">Server Booster</span>
+                                <img class="dc-badge-icon" src="https://cdn.discordapp.com/badge-icons/ec92202290b48d0879b7413d2dde3bab.png" alt="Boost">
+                            </div>
+                        </div>
                     </div>
                     <span id="dc-activity" class="discord-activity">currently doing nothing</span>
                 </div>
             </div>
 
             <!-- Ubicación interactiva debajo del rectángulo redondeado -->
-            <div class="location-row reveal-item" title="Ubicación: Argentina">
+            <div class="location-row reveal-item">
                 <i class="fa-solid fa-location-dot"></i>
                 <span>Argentina</span>
                 <img class="ar-flag" src="https://flagcdn.com/w40/ar.png" alt="Argentina">
@@ -844,8 +978,9 @@
                 </a>
             </div>
 
-            <!-- Contador de vistas reales por IP -->
-            <div class="views-counter reveal-item" title="Visitas únicas">
+            <!-- Contador de vistas reales con rectangulito redondeado "Views" arriba al pasar el mouse -->
+            <div class="views-counter reveal-item has-tooltip">
+                <span class="custom-tooltip">Views</span>
                 <i class="fa-regular fa-eye"></i>
                 <span id="view-count">1</span>
             </div>
@@ -907,14 +1042,14 @@
             const size = (Math.random() * 2.8 + 1.5).toFixed(1);
             dot.style.width = `${size}px`;
             dot.style.height = `${size}px`;
-            dot.style.left = `${Math.random() * 100}%`;
+            dot.style.left = `${Math.random() * 82}%`;
             dot.style.top = `${Math.random() * 85 + 10}%`;
             dot.style.animationDuration = `${(Math.random() * 1.8 + 1.2).toFixed(2)}s`;
             dot.style.animationDelay = `${(Math.random() * 2).toFixed(2)}s`;
             sparkleContainer.appendChild(dot);
         }
 
-        // --- 3. Efecto 3D al pasar el cursor (se activa tras terminar la animación de apertura) ---
+        // --- 3. Efecto 3D al pasar el cursor ---
         const tiltCards = document.querySelectorAll('.tilt-card');
 
         tiltCards.forEach(card => {
@@ -941,7 +1076,7 @@
             });
         });
 
-        // --- 4. Apertura Smooth, Controles de Video, Música y Botón de Volumen Superior ---
+        // --- 4. Apertura Smooth, Controles de Video, Música y Volumen ---
         const enterScreen = document.getElementById('enter-screen');
         const video = document.getElementById('bg-video');
         const audio = document.getElementById('bg-audio');
@@ -953,7 +1088,6 @@
         const currentTimeEl = document.getElementById('current-time');
         const totalTimeEl = document.getElementById('total-time');
 
-        // Elementos de Volumen Arriba a la Derecha
         const volMuteBtn = document.getElementById('vol-mute-btn');
         const volIcon = document.getElementById('vol-icon');
         const volSlider = document.getElementById('vol-slider');
@@ -974,7 +1108,6 @@
         }
         updateVolumeUI(lastVolume);
 
-        // Deslizar barra para subir/bajar volumen
         volSlider.addEventListener('input', (e) => {
             const val = parseFloat(e.target.value);
             audio.volume = val;
@@ -987,7 +1120,6 @@
             updateVolumeUI(val);
         });
 
-        // Tocar icono para mutear / desmutear
         volMuteBtn.addEventListener('click', () => {
             if (audio.muted || audio.volume === 0) {
                 audio.muted = false;
@@ -1002,7 +1134,6 @@
             }
         });
 
-        // Función de entrada con animación escalonada limpia
         let hasEntered = false;
         function triggerSmoothEnter() {
             if (hasEntered) return;
@@ -1011,12 +1142,10 @@
             enterScreen.style.opacity = '0';
             setTimeout(() => { enterScreen.style.display = 'none'; }, 650);
 
-            // Dispara la animación de expansión de las tarjetas y elementos en cascada
             requestAnimationFrame(() => {
                 document.body.classList.add('entered');
             });
 
-            // Habilita el seguimiento 3D cuando termina la animación de entrada
             setTimeout(() => {
                 document.body.classList.add('ready-3d');
             }, 950);
@@ -1065,10 +1194,14 @@
             progressFill.style.width = `${percent || 0}%`;
         });
 
-        // --- 5. Estado de Discord: SSE en vivo + respaldo por HTTP ---
-        const dcAvatar = document.getElementById('dc-avatar');
+        // --- 5. Estado de Discord, Insignias + Abrir Perfil en App de Discord (o Web si no tiene la App) ---
         const dcStatus = document.getElementById('dc-status');
         const dcActivity = document.getElementById('dc-activity');
+        const discordCardLink = document.getElementById('discord-card-link');
+        const badgeNitro = document.getElementById('badge-nitro');
+        const badgeBoost = document.getElementById('badge-boost');
+        let currentDiscordUserId = '';
+
         const statusColors = {
             online: '#23a55a',
             idle: '#f0b232',
@@ -1077,16 +1210,46 @@
             unknown: '#80848e'
         };
 
+        // Al hacer clic en la tarjeta de Im,Catri: abre la App de Discord; si no se abre, va a la Web
+        discordCardLink.addEventListener('click', () => {
+            const appUrl = currentDiscordUserId
+                ? `discord://-/users/${currentDiscordUserId}`
+                : `discord://-/invite/RH6KsX77p4`;
+            const webUrl = currentDiscordUserId
+                ? `https://discord.com/users/${currentDiscordUserId}`
+                : `https://discord.gg/RH6KsX77p4`;
+
+            let appOpened = false;
+            const onBlur = () => { appOpened = true; };
+            window.addEventListener('blur', onBlur, { once: true });
+
+            // Intenta lanzar el protocolo de la app de escritorio/móvil de Discord
+            window.location.href = appUrl;
+
+            // Si en 1.1s la ventana no perdió el foco (no se abrió la app), abre el perfil en la web
+            setTimeout(() => {
+                window.removeEventListener('blur', onBlur);
+                if (!appOpened && !document.hidden) {
+                    window.open(webUrl, '_blank', 'noopener,noreferrer');
+                }
+            }, 1100);
+        });
+
         function renderDiscord(data) {
             if (!data || data.error) {
                 dcStatus.style.backgroundColor = statusColors.unknown;
                 dcActivity.textContent = 'Discord no disponible';
                 return;
             }
+            if (data.userId) currentDiscordUserId = data.userId;
             if (data.displayName) document.getElementById('dc-displayname').textContent = data.displayName;
             if (data.username) document.getElementById('dc-username').textContent = `@${data.username}`;
             dcActivity.textContent = data.activity || 'currently doing nothing';
             dcStatus.style.backgroundColor = statusColors[data.status] || statusColors.unknown;
+
+            if (badgeNitro) badgeNitro.style.display = data.hasNitro !== false ? 'inline-flex' : 'none';
+            if (badgeBoost) badgeBoost.style.display = data.hasBoost ? 'inline-flex' : 'none';
+
             if (typeof data.views === 'number') document.getElementById('view-count').textContent = data.views;
         }
 
@@ -1116,16 +1279,10 @@
             const stream = new EventSource('/api/catruu-events');
             stream.addEventListener('profile', event => {
                 try { renderDiscord(JSON.parse(event.data)); }
-                catch (error) { console.error('Evento Discord no válido:', error); }
-            });
-            stream.addEventListener('server-error', event => {
-                try { renderDiscord(JSON.parse(event.data)); }
-                catch (error) { console.error('Error en el servidor:', error); }
+                catch (error) {}
             });
             stream.onopen = stopFallback;
-            stream.onerror = () => {
-                startFallback();
-            };
+            stream.onerror = () => startFallback();
         } else {
             startFallback();
         }
