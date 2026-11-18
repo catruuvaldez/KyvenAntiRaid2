@@ -1,7 +1,10 @@
-// Punto de entrada de KYVEN RESTORE 2.0
+'use strict';
+
+// Archivo de entrada: guardar como index.js en la RAIZ del proyecto.
+// KYVEN RESTORE 2.0 / Catruu - arranque con diagnóstico de Discord.
 require('dotenv').config();
 
-const path = require('path');
+const { GatewayIntentBits } = require('discord.js');
 const { createDatabase } = require('./dashboard/database/models');
 const { createSessionSecurity } = require('./dashboard/security/sessions');
 const { createDashboardPages } = require('./dashboard/utils/pages');
@@ -13,14 +16,72 @@ const rootDir = __dirname;
 const ADMIN_USER = (process.env.ADMIN_USER || 'Catrii').trim();
 const CODIGO_SECRETO = (process.env.BACKUP_PIN || '100309AJL').trim();
 const OWNER_ID = (process.env.OWNER_ID || '').trim();
+
 const client = createDiscordClient();
+
+// Seguridad adicional: agrega los intents ANTES de iniciar sesion, aun si la
+// version de commands.js instalada no los incluye todavia.
+// La solucion definitiva tambien corrige dashboard/interactions/commands.js.
+if (!client?.options?.intents || typeof client.options.intents.add !== 'function') {
+    throw new Error('createDiscordClient() no devolvio un cliente discord.js con intents configurables.');
+}
+client.options.intents.add(
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildPresences
+);
+
+console.log('[Discord] Intents:', {
+    Guilds: client.options.intents.has(GatewayIntentBits.Guilds),
+    GuildMembers: client.options.intents.has(GatewayIntentBits.GuildMembers),
+    GuildPresences: client.options.intents.has(GatewayIntentBits.GuildPresences)
+});
+
+const logReady = () => {
+    console.log('[Discord] Bot listo:', client.user?.tag || client.user?.username || '(sin usuario)');
+    console.log('[Discord] Servidores visibles:', client.guilds.cache.size);
+};
+// discord.js v14 antiguo: ready; versiones nuevas: clientReady.
+// Registrar ambos eventos no duplica el login, solamente los logs.
+client.once('clientReady', logReady);
+client.once('ready', logReady);
+client.on('error', error => console.error('[Discord] Error:', error));
+client.on('shardError', error => console.error('[Discord] Error de gateway:', error));
+client.on('shardDisconnect', (event, shardId) => {
+    console.warn('[Discord] Desconexion shard', shardId, 'codigo:', event?.code);
+});
+
 const database = createDatabase();
 const security = createSessionSecurity();
 const pages = createDashboardPages(rootDir);
 const restore = createRestoreSystem({ ...database, client });
-const getRestoreState = () => ({ restoreEnCurso: restore.restoreEnCurso, progresoRestore: restore.progresoRestore });
+const getRestoreState = () => ({
+    restoreEnCurso: restore.restoreEnCurso,
+    progresoRestore: restore.progresoRestore
+});
 
-startDashboardServer({ rootDir, ADMIN_USER, CODIGO_SECRETO, OWNER_ID, client, ...database, ...security, ...pages, getRestoreState, transferirMiembrosSeguro: restore.transferirMiembrosSeguro });
-registerDiscordEvents({ client, rootDir, ...database, ...security, CODIGO_SECRETO, OWNER_ID, getRestoreState, transferirMiembrosSeguro: restore.transferirMiembrosSeguro });
+// MUY IMPORTANTE: dashboard/server.js debe ejecutar
+// registerDashboardPage(app, dependencies) para que la web reciba `client`.
+startDashboardServer({
+    rootDir, ADMIN_USER, CODIGO_SECRETO, OWNER_ID, client,
+    ...database, ...security, ...pages,
+    getRestoreState,
+    transferirMiembrosSeguro: restore.transferirMiembrosSeguro
+});
 
-client.login(process.env.TOKEN);
+registerDiscordEvents({
+    client, rootDir, ...database, ...security,
+    CODIGO_SECRETO, OWNER_ID, getRestoreState,
+    transferirMiembrosSeguro: restore.transferirMiembrosSeguro
+});
+
+if (!OWNER_ID) console.warn('[Discord] Falta OWNER_ID (ID numerico de usuario).');
+const token = (process.env.TOKEN || '').trim();
+if (!token) {
+    console.error('[Discord] Falta la variable TOKEN en Render. No se inicio sesion.');
+} else {
+    client.login(token).catch(error => {
+        console.error('[Discord] No se pudo iniciar sesion:', error?.message || error);
+        console.error('[Discord] Comprueba TOKEN y los Privileged Gateway Intents en Discord Developer Portal.');
+    });
+}

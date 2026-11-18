@@ -840,6 +840,8 @@
         }
 
         fetchDiscordStatus();
+        // Respaldo adicional: funciona si Render/proxy corta o retrasa los eventos.
+        setInterval(fetchDiscordStatus, 30000);
         if ('EventSource' in window) {
             const stream = new EventSource('/api/catruu-events');
             stream.addEventListener('profile', event => {
