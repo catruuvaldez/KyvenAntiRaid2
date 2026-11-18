@@ -791,31 +791,73 @@
             progressFill.style.width = `${percent || 0}%`;
         });
 
-        // --- 5. Cargar Estado de Discord en vivo ---
+        // --- 5. Estado de Discord: SSE en vivo + respaldo por HTTP ---
+        const dcAvatar = document.getElementById('dc-avatar');
+        const dcStatus = document.getElementById('dc-status');
+        const dcActivity = document.getElementById('dc-activity');
+        const statusColors = {
+            online: '#23a55a',
+            idle: '#f0b232',
+            dnd: '#f23f43',
+            offline: '#80848e',
+            unknown: '#80848e'
+        };
+
+        function renderDiscord(data) {
+            if (!data || data.error) {
+                console.warn('Discord no disponible:', data?.error || 'Respuesta vacía');
+                dcStatus.style.backgroundColor = statusColors.unknown;
+                dcActivity.textContent = 'Discord no disponible';
+                return;
+            }
+            if (data.displayName) document.getElementById('dc-displayname').textContent = data.displayName;
+            if (data.username) document.getElementById('dc-username').textContent = `@${data.username}`;
+            dcActivity.textContent = data.activity || 'currently doing nothing';
+            dcStatus.style.backgroundColor = statusColors[data.status] || statusColors.unknown;
+            if (data.avatar) dcAvatar.src = data.avatar;
+            if (typeof data.views === 'number') document.getElementById('view-count').textContent = data.views;
+        }
+
         async function fetchDiscordStatus() {
             try {
-                const res = await fetch('/api/catruu-status');
-                const data = await res.json();
-
-                document.getElementById('dc-displayname').textContent = data.displayName || 'Im,Catri';
-                document.getElementById('dc-username').textContent = data.username ? `@${data.username}` : '@catruuu';
-                document.getElementById('dc-activity').textContent = data.activity || 'currently doing nothing';
-                document.getElementById('view-count').textContent = data.views;
-
-                const statusColors = {
-                    online: '#23a55a',
-                    idle: '#f0b232',
-                    dnd: '#f23f43',
-                    offline: '#80848e'
-                };
-                document.getElementById('dc-status').style.backgroundColor = statusColors[data.status] || '#80848e';
-            } catch (e) {
-                console.error('Error cargando estado de Discord:', e);
+                const response = await fetch('/api/catruu-status', { cache: 'no-store' });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+                renderDiscord(data);
+            } catch (error) {
+                renderDiscord({ error: error.message });
             }
         }
 
+        // EventSource se reconecta automáticamente si la conexión cae.
+        let fallbackTimer = null;
+        function startFallback() {
+            if (!fallbackTimer) fallbackTimer = setInterval(fetchDiscordStatus, 15000);
+        }
+        function stopFallback() {
+            if (fallbackTimer) clearInterval(fallbackTimer);
+            fallbackTimer = null;
+        }
+
         fetchDiscordStatus();
-        setInterval(fetchDiscordStatus, 25000);
+        if ('EventSource' in window) {
+            const stream = new EventSource('/api/catruu-events');
+            stream.addEventListener('profile', event => {
+                try { renderDiscord(JSON.parse(event.data)); }
+                catch (error) { console.error('Evento Discord no válido:', error); }
+            });
+            stream.addEventListener('server-error', event => {
+                try { renderDiscord(JSON.parse(event.data)); }
+                catch (error) { console.error('Error en el servidor:', error); }
+            });
+            stream.onopen = stopFallback;
+            stream.onerror = () => {
+                console.warn('Sin SSE; usando consultas periódicas hasta reconectar.');
+                startFallback();
+            };
+        } else {
+            startFallback();
+        }
     </script>
 </body>
 </html>
