@@ -63,7 +63,7 @@ app.get('/api/public-health', (req, res) => {
 });
 
 // Callback OAuth2
-app.get('/auth/callback', async (req, res) => {
+app.get(['/verify', '/auth/callback'], async (req, res) => {
     const code = req.query.code;
     if (!code) {
         return res.status(400).send(renderErrorPage(
