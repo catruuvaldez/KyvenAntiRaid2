@@ -1,11 +1,14 @@
-﻿'use strict';
+'use strict';
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('node:crypto');
 const { Routes, REST, SlashCommandBuilder, MessageFlags, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
 
 function registerDiscordEvents({ client, rootDir, registrarActividadSistema, OAuthToken, RestoreOperation, dbAdapter, CODIGO_SECRETO, OWNER_ID, getRestoreState, transferirMiembrosSeguro }) {
 const slashCommands = [];
+// Preserva las opciones originales durante la ventana del PIN. No guarda el PIN.
+const pinSessions = new Map();
 const commandsPath = path.join(rootDir, 'commands');
 
 if (fs.existsSync(commandsPath)) {
@@ -63,8 +66,8 @@ client.on('guildDelete', async (guild) => {
     await registrarActividadSistema('guild_disconnect', 'warning', `Servidor desconectado: ${guild.name || 'Servidor'}`, `ID: ${guild.id}`);
 });
 
-async function procesarComandoAutorizado(interaction) {
-    if (interaction.commandName === 'restore_pull') {
+async function procesarComandoAutorizado(interaction, inputOptions = interaction.options, requestedCommand = interaction.commandName) {
+    if (requestedCommand === 'restore_pull') {
         if (getRestoreState().restoreEnCurso) {
             return await interaction.reply({
                 content: `⏳ Ya hay una transferencia activa (${getRestoreState().progresoRestore.procesados}/${getRestoreState().progresoRestore.total}).`,
@@ -72,7 +75,7 @@ async function procesarComandoAutorizado(interaction) {
             });
         }
 
-        const cantidad = interaction.options?.getInteger?.('cantidad') || 500;
+        const cantidad = inputOptions?.getInteger?.('cantidad') || 500;
         const totalEnDb = await OAuthToken.countDocuments();
 
         if (totalEnDb === 0) {
@@ -96,11 +99,11 @@ async function procesarComandoAutorizado(interaction) {
         return;
     }
 
-    const command = client.commands.get(interaction.commandName);
+    const command = client.commands.get(requestedCommand);
     if (!command) return;
 
     try {
-        await command.execute(interaction, dbAdapter);
+        await command.execute(interaction, dbAdapter, inputOptions);
     } catch (error) {
         console.error(error);
         if (interaction.replied || interaction.deferred) {
@@ -113,19 +116,25 @@ async function procesarComandoAutorizado(interaction) {
 
 client.on('interactionCreate', async interaction => {
     if (interaction.isModalSubmit() && interaction.customId.startsWith('pin_modal_')) {
-        const pinEscrito = interaction.fields.getTextInputValue('pin_input').trim();
-        const cmdName = interaction.customId.replace('pin_modal_', '');
-
-        if (pinEscrito !== CODIGO_SECRETO) {
-            await registrarActividadSistema('auth', 'warning', `Intento fallido de PIN en comando /${cmdName}`, `Usuario: ${interaction.user.tag}`);
-            return await interaction.reply({
-                content: '❌ **Código de seguridad personal incorrecto.** Operación cancelada.',
-                flags: [MessageFlags.Ephemeral]
-            });
+        const nonce = interaction.customId.slice('pin_modal_'.length);
+        const state = pinSessions.get(nonce);
+        pinSessions.delete(nonce);
+        if (!state || state.userId !== interaction.user.id || state.guildId !== interaction.guildId || Date.now() > state.expiresAt) {
+            return await interaction.reply({content:'❌ Solicitud de PIN caducada o inválida.',flags:[MessageFlags.Ephemeral]});
         }
-
-        interaction.commandName = cmdName;
-        return await procesarComandoAutorizado(interaction);
+        const isOwner = !OWNER_ID || interaction.user.id === OWNER_ID ||
+            (interaction.guild && interaction.guild.ownerId === interaction.user.id);
+        if (!isOwner) return interaction.reply({content:'⛔ Usuario no autorizado.',flags:[MessageFlags.Ephemeral]});
+        const pinEscrito = interaction.fields.getTextInputValue('pin_input').trim();
+        if (pinEscrito !== CODIGO_SECRETO) {
+            await registrarActividadSistema('auth', 'warning', `PIN incorrecto en /${state.commandName}`, `Usuario: ${interaction.user.tag}`);
+            return await interaction.reply({content:'❌ Código incorrecto.',flags:[MessageFlags.Ephemeral]});
+        }
+        const remembered = {
+            getString: name => state.options.find(o => o.name === name && o.type === 3)?.value ?? null,
+            getInteger: name => state.options.find(o => o.name === name && o.type === 4)?.value ?? null
+        };
+        return await procesarComandoAutorizado(interaction,remembered,state.commandName);
     }
 
     if (!interaction.isChatInputCommand()) return;
@@ -141,8 +150,15 @@ client.on('interactionCreate', async interaction => {
     const codigoIngresado = interaction.options.getString('codigo');
 
     if (!codigoIngresado) {
+        for (const [id,session] of pinSessions) if (session.expiresAt < Date.now()) pinSessions.delete(id);
+        const nonce = crypto.randomBytes(9).toString('hex');
+        pinSessions.set(nonce, {
+            userId:interaction.user.id, guildId:interaction.guildId,
+            commandName:interaction.commandName, options: interaction.options.data.map(o => ({name:o.name,type:o.type,value:o.value})),
+            expiresAt:Date.now()+180000
+        });
         const modal = new ModalBuilder()
-            .setCustomId(`pin_modal_${interaction.commandName}`)
+            .setCustomId(`pin_modal_${nonce}`)
             .setTitle('🔐 Verificación de Seguridad Kyven');
 
         const inputPin = new TextInputBuilder()
