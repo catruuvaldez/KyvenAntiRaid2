@@ -21,7 +21,7 @@ const OWNER_ID = (process.env.OWNER_ID || '').trim();
 // No iniciar un panel y comandos administrativos con una clave predeterminada
 // ni con autorización abierta a cualquier usuario.
 if (!/^\d{15,22}$/.test(OWNER_ID)) throw new Error('Configura OWNER_ID con tu ID de Discord antes de iniciar KYVEN.');
-if (CODIGO_SECRETO.length < 12) throw new Error('Configura BACKUP_PIN (mínimo 12 caracteres privados) antes de iniciar KYVEN.');
+if (CODIGO_SECRETO.length < 9) throw new Error('Configura BACKUP_PIN (mínimo 9 caracteres) antes de iniciar KYVEN.');
 
 const client = createDiscordClient();
 
